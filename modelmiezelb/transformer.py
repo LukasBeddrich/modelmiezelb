@@ -89,25 +89,13 @@ class SqtTransformer(Transformer):
         l = linspace(1-dlam*1.01, 1+dlam*1.01, self.params["n_lam"]) * lam
         ll = tile(l,(self.params["n_e"],1))
         a = -0.99999 * energy_from_lambda(l)
-#        b = a + 15.0 + 3.0
         ee = linspace(a, UPPER_INTEGRATION_LIMIT, self.params["n_e"])
-#        for lamidx, clam in enumerate(l): # clam = current wavelength
-#            print(lamidx, clam)
-#        print("\n\n")
-
-        # l = linspace(1-dlam*1.01, 1+dlam*1.01, self.params["n_lam"]) * lam
-        # e = linspace(-energy_from_lambda(l), UPPER_INTEGRATION_LIMIT, self.params["n_e"])
-        # ll, ee = meshgrid(l, e)
-        # print(f"Shape ll: {l.shape}")
-        # print(f"Shape ee: {e.shape}")
-
 
         ### Creating intgrand arrays
         sqe = ones((self.params["n_e"], self.params["n_lam"]))
         corrs = tile(sqe, (len(self.corrections), 1, 1))
 
         ### Filling integrand arrays
-#        phase_weight = cos(MIEZE_phase(ee, var, self.params["l_SD"], ll))
         mieze_phase = MIEZE_phase(ee, var, self.params["l_SD"], ll)
         det_eff = detector_efficiency(ee, ll, 1)
         tri_distr = triangle_distribution(ll, lam, dlam)
@@ -116,17 +104,13 @@ class SqtTransformer(Transformer):
         corrs = corrs.prod(axis=0)
 
         for lamidx, clam in enumerate(l): # clam = current wavelength
-#            print(lamidx, clam)
             self.sqemodel.update_domain((-1 * energy_from_lambda(clam), UPPER_INTEGRATION_LIMIT))
             sqe[:, lamidx] = self.sqemodel(ee[:, lamidx])
 
         ### Integration with trapezoidal rule
         # integrand except phase
         integrand = det_eff * sqe * tri_distr * corrs
-#        return trapz(trapz(det_eff * sqe * phase_weight * tri_distr * corrs, ee, axis=0), l)
         # integration for two points of the of known phase difference
         y1 = trapz(trapz(integrand * cos(mieze_phase), ee, axis=0), l)
         y2 = trapz(trapz(integrand * cos(mieze_phase + 0.5*pi), ee, axis=0), l)
         return ( y1**2 + y2**2 )**0.5
-
-        

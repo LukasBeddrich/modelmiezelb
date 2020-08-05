@@ -6,7 +6,7 @@ import json
 import modelmiezelb.arg_inel_mieze_model as arg
 from math import isclose
 from .utils.util import energy_from_lambda, bose_factor, wavelength_from_energy
-from .lineshape import InelasticCalcStrategy, QuasielasticCalcStrategy
+from .lineshape import InelasticCalcStrategy, QuasielasticCalcStrategy, LineFactory
 
 ###############################################################################
 
@@ -68,7 +68,7 @@ class SqE:
             :   dict
             dictionary of the contents of the Line object.
         """
-        export_dict = dict(**self.model_params)
+        export_dict = {"model_params" : dict(**self.model_params)}
         for line in self._lines:
             try:
                 assert line.name not in export_dict.keys()
@@ -76,6 +76,17 @@ class SqE:
             except AssertionError:
                 raise ValueError(f"The name of {line}, {line.name} is not unique.")
         return export_dict
+
+#------------------------------------------------------------------------------
+
+    @classmethod
+    def load_from_dict(cls, **sqe_dict):
+        """
+
+        """
+        model_params = sqe_dict.pop("model_params")
+        lines = [LineFactory.create(item.pop("specifier"), **item) for item in sqe_dict.values()]
+        return cls(lines, **model_params)
 
 #------------------------------------------------------------------------------
 
@@ -194,19 +205,19 @@ class SqE_from_arg:
 #------------------------------------------------------------------------------
 
     def update_domain(self, new_domain):
-        self.model_params["lam"] = 6.0#wavelength_from_energy(abs(new_domain[0]))
+        pass
 
 #------------------------------------------------------------------------------
 
-    def __call__(self, var):
+    def __call__(self, var, T=20.0):
         return arg.SvqE(func=arg.fqe_I,
             e=var,
-            e0=-1.0,
-            e0width=0.4,
+            e0=7.0,
+            e0width=0.2,
             bckg=0.0,
             amplitude=1.0,
-            lam=6.0,#self.model_params["lam"],
-            T=20,
+            lam=self.model_params["lam"],
+            T=T,
             q=0.00005,
             kappa=0.1,
             A=350.
