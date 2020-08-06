@@ -1,9 +1,10 @@
 """
 
 """
+import json
 from numpy import tile, linspace, empty, cos, trapz, meshgrid, ones, pi, sqrt
 from modelmiezelb.utils.util import energy_from_lambda, MIEZE_phase, triangle_distribution, detector_efficiency
-from modelmiezelb.sqe_model import UPPER_INTEGRATION_LIMIT
+from modelmiezelb.sqe_model import UPPER_INTEGRATION_LIMIT, SqE
 class Transformer:
     """
 
@@ -15,11 +16,15 @@ class Transformer:
         """
         pass
 
+#------------------------------------------------------------------------------
+
     def __call__(self, var):
         """
 
         """
         pass
+
+#------------------------------------------------------------------------------
 
     def calc(self, var):
         """
@@ -27,13 +32,17 @@ class Transformer:
         """
         pass
 
-    def load_from_jsonfile(self, json_file):
+#------------------------------------------------------------------------------
+
+    def export_to_jsonfile(self, json_file):
         """
 
         """
         pass
 
-    def export_to_jsonfile(self, json_file):
+#------------------------------------------------------------------------------
+
+    def load_from_jsonfile(self, json_file):
         """
 
         """
@@ -67,8 +76,12 @@ class SqtTransformer(Transformer):
         self.params = dict(n_e=15000, n_lam=50, l_SD=None)
         self.params.update(params)
 
+#------------------------------------------------------------------------------
+
     def __call__(self, var):
         return self.calc(var)
+
+#------------------------------------------------------------------------------
 
     def calc(self, var):
         """
@@ -114,3 +127,72 @@ class SqtTransformer(Transformer):
         y1 = trapz(trapz(integrand * cos(mieze_phase), ee, axis=0), l)
         y2 = trapz(trapz(integrand * cos(mieze_phase + 0.5*pi), ee, axis=0), l)
         return ( y1**2 + y2**2 )**0.5
+
+#------------------------------------------------------------------------------
+
+    def export_to_dict(self):
+        """
+        Returns a dictionary, which can be used to create
+        a new instance of the same class via the 
+        cls.load_from_dict method as alternate constructor.
+        
+        !DOES NOT WORK WITH CORRECTIONS YET!
+
+        Returns
+        -------
+            :   dict
+            dictionary of the contents of the Transformer object.
+        """
+        export_dict = dict(params=self.params)
+        export_dict['corrections'] = ()
+        export_dict['sqemodel'] = self.sqemodel.export_to_dict()
+        return export_dict
+
+#------------------------------------------------------------------------------
+
+    @classmethod
+    def load_from_dict(cls, **transformer_dict):
+        """
+
+        """
+        params = transformer_dict["params"]
+        sqemodel = SqE.load_from_dict(**transformer_dict["sqemodel"])
+        return cls(sqemodel, **params)
+
+#------------------------------------------------------------------------------
+
+    def export_to_jsonfile(self, json_file):
+        """
+        Saves a JSON-file, which can be used to create
+        a new instance of the same class via the 
+        cls.load_from_jsonfile method as alternate constructor.
+        
+        !DOES NOT WORK WITH CORRECTIONS YET!
+
+        Parameters
+        ----------
+        json_file   :   str
+            path specifying the JSON file for saving the Line object.
+
+        Returns
+        -------
+            :   NoneType
+        """
+        with open(json_file, "w") as jsonfile:
+            json.dump(self.export_to_dict(), jsonfile)
+        return None
+        
+
+#------------------------------------------------------------------------------
+
+    @classmethod
+    def load_from_jsonfile(cls, json_file):
+        """
+
+        """
+        with open(json_file, "r") as jsonfile:
+            imported_transformer = json.load(jsonfile)
+
+        for v in imported_transformer["sqemodel"].values():
+            if 'domain' in v.keys(): v['domain'] = tuple(v['domain'])
+        return cls.load_from_dict(**imported_transformer)

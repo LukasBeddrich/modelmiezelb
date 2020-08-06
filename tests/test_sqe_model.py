@@ -59,13 +59,13 @@ def test_export_load():
     sqe_dict = sqe.export_to_dict()
     # import again
     sqe_loaded_from_dict = sqe.load_from_dict(**sqe_dict)
-    print(sqe_loaded_from_dict.export_to_dict())
-#    sqe_loaded_from_file = sqe.load_from_dict()
+    sqe_loaded_from_file = sqe.load_from_jsonfile(f"{testdir}/resources/test_sqe_export_load_file.json")
     
     # # visualize
     # e = np.linspace(-15.0, 15.0, 301)
     # plt.plot(e, sqe(e), color="C0", lw=5.0, label="original")
     # plt.plot(e, sqe_loaded_from_dict(e), color="C1", ls="--", lw=2.0, label="from dict")
+    # plt.plot(e, sqe_loaded_from_file(e), color="C3", ls=":", lw=2.0, label="from file")
     # plt.legend()
     # plt.show()
 

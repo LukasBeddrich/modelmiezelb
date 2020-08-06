@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import os
 ###############################################################################
 from numpy import linspace, logspace, tile, trapz, all, isclose, abs
 ###############################################################################
@@ -10,6 +11,9 @@ from modelmiezelb.transformer import SqtTransformer
 from modelmiezelb.utils.util import MIEZE_DeltaFreq_from_time, energy_from_lambda, MIEZE_phase, detector_efficiency, triangle_distribution
 ###############################################################################
 import modelmiezelb.arg_inel_mieze_model as arg
+###############################################################################
+# Path quarrels
+testdir = os.path.dirname(os.path.abspath(__file__))
 
 def test_transformer_init():
     ### Creating a SqE model for transformation
@@ -150,10 +154,34 @@ def test_manualtransform_arg_model():
     print(mieze_phase)
     print(det_eff)
     print(tri_distr)
-    
+
+#------------------------------------------------------------------------------
+
+def test_export_load():
+    ### Creating a SqE model for transformation
+    # We need some lines
+    L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
+    L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.0, weight=1)
+    # Contruct a SqE model
+    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
+
+    ### Instantiate a transformer
+    sqt = SqtTransformer(sqe, n_lam=20, n_e=10000, l_SD=3.43)
+
+    ### Export
+    sqt_dict = sqt.export_to_dict()
+    print(sqt_dict)
+    sqt.export_to_jsonfile(f"{testdir}/resources/test_transformer_export_load_file.json")
+
+    ### Loading
+    sqt_from_dict = sqt.load_from_dict(**sqt_dict)
+    sqt_from_file = sqt.load_from_jsonfile(f"{testdir}/resources/test_transformer_export_load_file.json")
+
+    print(sqt_from_file.export_to_dict())
 
 if __name__ == "__main__":
 #    test_transformer_init()
 #    test_transformer_basics()
-    test_transform_arg_model()
+#    test_transform_arg_model()
 #    test_manualtransform_arg_model()
+    test_export_load()

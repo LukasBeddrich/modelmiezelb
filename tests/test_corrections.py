@@ -8,6 +8,8 @@ from modelmiezelb.lineshape import LorentzianLine
 from modelmiezelb.sqe_model import SqE, UPPER_INTEGRATION_LIMIT
 ###############################################################################
 from modelmiezelb.utils.util import detector_efficiency, triangle_distribution, energy_from_lambda, energy_lambda_nrange
+###############################################################################
+from time import time
 
 def test_CorrectionFactor_instantiation():
     corrf1 = CorrectionFactor(None)
@@ -253,7 +255,64 @@ def test_DetectorEfficiency_cancel():
 #    print(detector_efficiency(ee[::500, ::5], ll[::500, ::5], 0))
 #    print()
 
+#------------------------------------------------------------------------------
 
+def test_DetectorEfficiency_quad_vs_trapz():
+    # We need some lines
+    L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
+    L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.02, weight=1)
+    # Contruct a SqE model
+    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
+
+    ### QUAD
+    from scipy.integrate import dblquad
+    # parameter for calculation
+    plam, pdlam = 6.0, 0.12
+
+    def dblquadfunc(energy, lam, on):
+        # det_eff = detector_efficiency(energy, lam, 1)
+        # sqeval = sqe(energy)
+        # tri_distr_weight = triangle_distribution(lam, plam, pdlam)
+        return detector_efficiency(energy, lam, on) * sqe(energy) * triangle_distribution(lam, plam, pdlam)
+    # integrate
+    t0quad = time()
+    reson, erron = dblquad(
+        dblquadfunc,
+        plam * (1-pdlam),
+        plam * (1+pdlam),
+        lambda x: -0.9999 * energy_from_lambda(x),
+        lambda x: UPPER_INTEGRATION_LIMIT,
+        args=(1,),
+        #epsabs=1.0e-2
+    )
+    resoff, erroff = dblquad(
+        dblquadfunc,
+        plam * (1-pdlam),
+        plam * (1+pdlam),
+        lambda x: -0.9999 * energy_from_lambda(x),
+        lambda x: UPPER_INTEGRATION_LIMIT,
+        args=(0,),
+        #epsabs=1.0e-2
+    )
+    t1quad = time()
+    print(f"RESULT: {resoff/reson} +- {resoff/reson * ((erron/reson)**2+(erroff/resoff)**2)**0.5}")
+    print(f"dblquad took {t1quad - t0quad} seconds")
+
+    ### TRAPZ
+    decf = DetectorEfficiencyCorrectionFactor(sqe)
+    ee, ll = energy_lambda_nrange(
+        UPPER_INTEGRATION_LIMIT,
+        6.0,
+        0.12,
+        15000,
+        20
+    )
+    # integrate
+    t0trapz = time()
+    trapz_res = decf(ee, ll)
+    t1trapz = time()
+    print(f"RESULT: {trapz_res}")
+    print(f"trapz took {t1trapz - t0trapz} seconds")
 
 #------------------------------------------------------------------------------
 
@@ -263,4 +322,5 @@ if __name__ == "__main__":
 #    test_EnergyCutOffCorrectionFactor()
 #    test_correctionFactor_dimensionality()
 #    test_EnergyCutoffCorrectionFactor()
-    test_DetectorEfficiency_cancel()
+#    test_DetectorEfficiency_cancel()
+    test_DetectorEfficiency_quad_vs_trapz()

@@ -86,18 +86,43 @@ class SqE:
         """
         model_params = sqe_dict.pop("model_params")
         lines = [LineFactory.create(item.pop("specifier"), **item) for item in sqe_dict.values()]
-        return cls(lines, **model_params)
+        return cls(tuple(lines), **model_params)
 
 #------------------------------------------------------------------------------
 
     def export_to_jsonfile(self, json_file):
         """
+        Saves a JSON-file, which can be used to create
+        a new instance of the same class via the 
+        cls.load_from_jsonfile method as alternate constructor.
 
+        Parameters
+        ----------
+        json_file   :   str
+            path specifying the JSON file for saving the Line object.
+
+        Returns
+        -------
+            :   NoneType
         """
         export_dict = self.export_to_dict()
         with open(json_file, "w") as jsonfile:
             json.dump(export_dict, jsonfile)
         return None
+
+#------------------------------------------------------------------------------
+
+    @classmethod
+    def load_from_jsonfile(cls, json_file):
+        """
+
+        """
+        with open(json_file, "r") as jsonfile:
+            imported_sqe = json.load(jsonfile)
+
+        for v in imported_sqe.values():
+            if 'domain' in v.keys(): v['domain'] = tuple(v['domain'])
+        return cls.load_from_dict(**imported_sqe)
 
 #------------------------------------------------------------------------------
 
