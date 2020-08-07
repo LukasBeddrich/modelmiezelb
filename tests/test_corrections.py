@@ -1,7 +1,10 @@
 import matplotlib.pyplot as plt
 import modelmiezelb.arg_inel_mieze_model as arg
+import os
 ###############################################################################
 from numpy import linspace, tile, trapz, all, isclose, arange, ones
+from pprint import pprint
+from time import time
 ###############################################################################
 from modelmiezelb.correction import CorrectionFactor, DetectorEfficiencyCorrectionFactor, EnergyCutOffCorrectionFactor
 from modelmiezelb.lineshape import LorentzianLine
@@ -9,7 +12,8 @@ from modelmiezelb.sqe_model import SqE, UPPER_INTEGRATION_LIMIT
 ###############################################################################
 from modelmiezelb.utils.util import detector_efficiency, triangle_distribution, energy_from_lambda, energy_lambda_nrange
 ###############################################################################
-from time import time
+# Path quarrels
+testdir = os.path.dirname(os.path.abspath(__file__))
 
 def test_CorrectionFactor_instantiation():
     corrf1 = CorrectionFactor(None)
@@ -316,6 +320,29 @@ def test_DetectorEfficiency_quad_vs_trapz():
 
 #------------------------------------------------------------------------------
 
+def test_export_load():
+    # We need some lines
+    L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
+    L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.02, weight=1)
+    # Contruct a SqE model
+    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
+    new_domain = (-1 * energy_from_lambda(6.0), UPPER_INTEGRATION_LIMIT)
+    sqe.update_domain(new_domain)
+    # init energycutoff
+    decf = DetectorEfficiencyCorrectionFactor(sqe, n_e=10000, n_lam=20)
+
+    # exports
+    corrdict = decf.export_to_dict()
+    decf.export_to_jsonfile(f"{testdir}/resources/test_correction_export_load_file.json")
+
+    # loading
+    decf_from_dict = decf.load_from_dict(**corrdict)
+    print(decf_from_dict.export_to_dict())
+    print("", "Loading successful: ", decf, decf_from_dict, sep='\n')
+    decf_from_jsonfile = decf.load_from_jsonfile(f"{testdir}/resources/test_correction_export_load_file.json")
+    print("Loading successful: ", decf, decf_from_jsonfile, sep='\n')
+
+
 if __name__ == "__main__":
 #    test_CorrectionFactor_instantiation()
 #    test_DetectorEfficiencyCorrectionFactor()
@@ -323,4 +350,5 @@ if __name__ == "__main__":
 #    test_correctionFactor_dimensionality()
 #    test_EnergyCutoffCorrectionFactor()
 #    test_DetectorEfficiency_cancel()
-    test_DetectorEfficiency_quad_vs_trapz()
+#    test_DetectorEfficiency_quad_vs_trapz()
+    test_export_load()

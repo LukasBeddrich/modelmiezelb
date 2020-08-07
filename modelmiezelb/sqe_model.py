@@ -85,6 +85,8 @@ class SqE:
 
         """
         model_params = sqe_dict.pop("model_params")
+        for v in sqe_dict.values():
+            if 'domain' in v.keys(): v['domain'] = tuple(v['domain'])
         lines = [LineFactory.create(item.pop("specifier"), **item) for item in sqe_dict.values()]
         return cls(tuple(lines), **model_params)
 
@@ -120,8 +122,8 @@ class SqE:
         with open(json_file, "r") as jsonfile:
             imported_sqe = json.load(jsonfile)
 
-        for v in imported_sqe.values():
-            if 'domain' in v.keys(): v['domain'] = tuple(v['domain'])
+        # for v in imported_sqe.values():
+        #     if 'domain' in v.keys(): v['domain'] = tuple(v['domain'])
         return cls.load_from_dict(**imported_sqe)
 
 #------------------------------------------------------------------------------

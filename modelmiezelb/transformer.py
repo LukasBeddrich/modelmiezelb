@@ -5,6 +5,7 @@ import json
 from numpy import tile, linspace, empty, cos, trapz, meshgrid, ones, pi, sqrt
 from modelmiezelb.utils.util import energy_from_lambda, MIEZE_phase, triangle_distribution, detector_efficiency
 from modelmiezelb.sqe_model import UPPER_INTEGRATION_LIMIT, SqE
+from modelmiezelb.correction import CorrectionFactor
 class Transformer:
     """
 
@@ -144,7 +145,7 @@ class SqtTransformer(Transformer):
             dictionary of the contents of the Transformer object.
         """
         export_dict = dict(params=self.params)
-        export_dict['corrections'] = ()
+        export_dict['corrections'] = [corr.export_to_dict() for corr in self.corrections]
         export_dict['sqemodel'] = self.sqemodel.export_to_dict()
         return export_dict
 
@@ -157,7 +158,8 @@ class SqtTransformer(Transformer):
         """
         params = transformer_dict["params"]
         sqemodel = SqE.load_from_dict(**transformer_dict["sqemodel"])
-        return cls(sqemodel, **params)
+        corrections = tuple([CorrectionFactor.load_from_dict(**cdict) for cdict in transformer_dict["corrections"]])
+        return cls(sqemodel, corrections, **params)
 
 #------------------------------------------------------------------------------
 
@@ -179,7 +181,7 @@ class SqtTransformer(Transformer):
             :   NoneType
         """
         with open(json_file, "w") as jsonfile:
-            json.dump(self.export_to_dict(), jsonfile)
+            json.dump(self.export_to_dict(), jsonfile, indent=4)
         return None
         
 
