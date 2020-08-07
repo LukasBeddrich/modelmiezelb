@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import os
 ###############################################################################
 from numpy import linspace, logspace, tile, trapz, all, isclose, abs
+from pprint import pprint
 ###############################################################################
 from modelmiezelb.correction import CorrectionFactor, DetectorEfficiencyCorrectionFactor, EnergyCutOffCorrectionFactor
 from modelmiezelb.lineshape import LorentzianLine
@@ -164,20 +165,29 @@ def test_export_load():
     L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.0, weight=1)
     # Contruct a SqE model
     sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
+    # Add the detector efficiency correction
+    decf = DetectorEfficiencyCorrectionFactor(sqe, n_e=10000, n_lam=20)
+    # Add the energycutoff correction
+    eccf = EnergyCutOffCorrectionFactor(sqe, n_e=10000, n_lam=20 )
 
     ### Instantiate a transformer
-    sqt = SqtTransformer(sqe, n_lam=20, n_e=10000, l_SD=3.43)
+    sqt = SqtTransformer(sqe, corrections=(decf, eccf), n_lam=20, n_e=10000, l_SD=3.43)
 
     ### Export
     sqt_dict = sqt.export_to_dict()
-    print(sqt_dict)
+    pprint(sqt_dict["corrections"])
     sqt.export_to_jsonfile(f"{testdir}/resources/test_transformer_export_load_file.json")
+    print("", "SqE's of the: ", f"- sqe: {sqe}", f"- decf: {decf.sqe}", f"- eccf: {eccf.sqe}", f"- sqt: {sqt.sqemodel}", sep="\n")
 
     ### Loading
     sqt_from_dict = sqt.load_from_dict(**sqt_dict)
+    print("", "Loading successful: ", sqt, sqt_from_dict, sep='\n')
     sqt_from_file = sqt.load_from_jsonfile(f"{testdir}/resources/test_transformer_export_load_file.json")
+    print("Loading successful: ", sqt, sqt_from_file, sep='\n')
+    print("", "SqE's of the: ", f"- sqe: {sqe}", f"- decf: {sqt_from_dict.corrections[0].sqe}", f"- eccf: {sqt_from_dict.corrections[1].sqe}", f"- sqt: {sqt_from_dict.sqemodel}", sep="\n")
 
-    print(sqt_from_file.export_to_dict())
+    print("\n\nThis is the sqt loaded from dict")
+    pprint(sqt_from_file.export_to_dict())
 
 if __name__ == "__main__":
 #    test_transformer_init()

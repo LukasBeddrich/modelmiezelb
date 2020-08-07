@@ -7,25 +7,11 @@ from modelmiezelb.correction import DetectorEfficiencyCorrectionFactor
 from modelmiezelb.lineshape import LorentzianLine
 from modelmiezelb.sqe_model import SqE
 from modelmiezelb.transformer import SqtTransformer
-from modelmiezelb.fit import FitModelCreator, LeastSquareCollector_old
+from modelmiezelb.fit import FitModelCreator
 ###############################################################################
 from modelmiezelb.utils.util import MIEZE_DeltaFreq_from_time, energy_from_lambda, MIEZE_phase, detector_efficiency, triangle_distribution
 from modelmiezelb.utils.helpers import flatten_list
-
-def test_LeastSquareCollector():
-    # We need some lines
-    L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
-    L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.0, weight=1)
-    # Contruct a SqE model
-    sqe1 = SqE((L1, L2), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
-
-    # Parameters of model function
-    func = LeastSquareCollector_old.from_sqe(sqe1)
-
-    print(func)
-#    print(list(flatten_list(func)))
-
-#------------------------------------------------------------------------------
+###############################################################################
 
 def test_from_sqe():
     # We need some lines
@@ -158,9 +144,11 @@ def slow_vis_fitting():
     sqe1 = SqE((L1, L2), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
 
     ### Instantiate a transformer
+    # Consider detector efficiency
+    decf = DetectorEfficiencyCorrectionFactor(sqe1)
     sqt1 = SqtTransformer(
         sqe1,
-        corrections=(), #(DetectorEfficiencyCorrectionFactor(sqe1, n_e=15000, n_lam=20),),
+        corrections=(decf,),
         n_e=10000,
         n_lam=20,
         l_SD=3.43
@@ -175,10 +163,10 @@ def slow_vis_fitting():
     ### TRANSFORM!!
     y = array([sqt1(freq) for freq in x])
     sqt1vals = array([sqt1(freq) for freq in longx])
-    yerr = 0.02 * random.randn(len(y))
+    yerr = 0.05 * random.randn(len(y))
 
     ### FIT!
-    m = FitModelCreator.from_transformer(sqt1, x, y+yerr, yerr, [0.45, 0.0, 1.2, -1.5, 0.3, 0.0, 2.2])
+    m = FitModelCreator.from_transformer(sqt1, x, abs(y+yerr), yerr, [0.45, 0.0, 1.2, -1.5, 0.3, 0.0, 2.2])
     m.fixed["c_Lorentzian1"] = True
     m.fixed["c_Lorentzian2"] = True
     print("fcn for m:\n", m.fcn)
@@ -257,7 +245,7 @@ def slow_vis_fitting():
 
     plt.plot(taus, sqt1vals, label="orig. curve", ls="--", color="C0")
     plt.plot(taus, sqtres1vals, label="fit curve 1", ls="-", color="C1")
-    plt.plot(taus, sqtres2vals, label="fit curve 2", ls="-", color="C4")
+    plt.plot(taus, sqtres2vals, label="fit curve 2", ls=":", color="C4")
     plt.plot(taus, sqtigvals, label="init guess", ls="-.", color="C2")
     plt.errorbar(datataus, y+yerr, yerr, label="data", ls="", marker="o", color="C0")
     plt.xscale("log")
@@ -269,5 +257,5 @@ def slow_vis_fitting():
 if __name__ == "__main__":
 #    test_LeastSquareCollector()
 #    test_from_sqe()
-    test_from_transformer()
-#    quick_vis()
+#    test_from_transformer()
+    slow_vis_fitting()
