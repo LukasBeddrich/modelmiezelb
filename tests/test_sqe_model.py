@@ -6,6 +6,8 @@ from modelmiezelb.sqe_model import SqE, SqE_from_arg, UPPER_INTEGRATION_LIMIT
 from modelmiezelb.lineshape import Line, LorentzianLine
 from modelmiezelb.utils.util import energy_from_lambda
 ###############################################################################
+from pprint import pprint
+###############################################################################
 # Path quarrels
 testdir = os.path.dirname(os.path.abspath(__file__))
 
@@ -25,7 +27,7 @@ def test_sqe_normalization():
     # We need some lines
     L1, L2 = we_need_some_Lines()
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
+    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     new_domain = (-1 * energy_from_lambda(6.0), UPPER_INTEGRATION_LIMIT)
     sqe.update_domain(new_domain)
 
@@ -50,7 +52,7 @@ def test_export_load():
     # We need some lines
     L1, L2 = we_need_some_Lines()
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
+    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     new_domain = (-1 * energy_from_lambda(6.0), UPPER_INTEGRATION_LIMIT)
     sqe.update_domain(new_domain)
 
@@ -69,7 +71,27 @@ def test_export_load():
     # plt.legend()
     # plt.show()
 
+#------------------------------------------------------------------------------
+
+def test_update_params():
+    # We need some lines
+    L1, L2 = we_need_some_Lines()
+    # Contruct a SqE model
+    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    pprint(sqe.export_to_dict())
+    tdict = dict(
+#        T=30,
+#        lam=8.0,
+        x0_Lorentzian2=-0.5,
+        weight_Lorentzian1=5
+    )
+    sqe.update_params(**tdict)
+    pprint(sqe.export_to_dict())
+
+#------------------------------------------------------------------------------
+
 if __name__ == "__main__":
 #    test_sqe_normalization()
 #    test_sqe_arg()
-    test_export_load()
+#    test_export_load()
+    test_update_params()

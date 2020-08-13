@@ -61,20 +61,13 @@ class FitModelCreator:
         """
         Creates a 'Minuit' object from `transformer´ using the '.from_array_func'
         """
-        # param_names = []
-        # for l in transformer.sqemodel._lines:
-        #     for k in l.line_params.keys():
-        #         if not (k=="x0" and isclose(l.line_params['x0'], 0.0, abs_tol=0.001)):
-        #             param_names.append("_".join((k, l.name)))
         param_names = cls.get_param_names(sqe=transformer.sqemodel)
+        transformer_internal = transformer.load_from_dict(**transformer.export_to_dict())
 
         def calc(params):
-            transformer_internal = transformer.load_from_dict(**transformer.export_to_dict())
             params_dict = dict(zip(param_names, params))
-            for lidx, line in enumerate(transformer_internal.sqemodel._lines):
-                for corr in transformer_internal.corrections:
-                    corr.sqe._lines[lidx].line_params.update({k.split("_")[0] : v for k, v in params_dict.items() if k.split("_")[1] == line.name})
-                line.line_params.update({k.split("_")[0] : v for k, v in params_dict.items() if k.split("_")[1] == line.name})
+            transformer_internal.update_params(**params_dict)
+            
             sqtvals = array([transformer_internal(xval) for xval in x])
             return sum(power((y - sqtvals) / yerr, 2))
         return Minuit.from_array_func(calc, initguess, name=param_names, errordef=1)

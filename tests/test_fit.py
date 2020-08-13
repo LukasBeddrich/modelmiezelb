@@ -20,8 +20,8 @@ def test_from_sqe():
     L1g = LorentzianLine("Lorentzian1g", (-5.0, 5.0), x0=0.0, width=0.5, c=0.0, weight=1)
     L2g = LorentzianLine(name="Lorentzian2g", domain=(-5.0, 5.0), x0=-1.5, width=0.3, c=0.0, weight=1)
     # Contruct a SqE model
-    sqe1 = SqE((L1, L2), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
-    sqe1g = SqE((L1g, L2g), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
+    sqe1 = SqE((L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe1g = SqE((L1g, L2g), lam=6.0, dlam=0.12, lSD=3.43, T=20)
 
     # Create some data and a Minuit obj from sqe
     x = linspace(-5,5,26)
@@ -49,7 +49,7 @@ def test_from_sqe():
 
     L1res = LorentzianLine(name="Lorentzian1res", domain=(-5.0, 5.0), **dL1res)
     L2res = LorentzianLine(name="Lorentzian2res", domain=(-5.0, 5.0), **dL2res)
-    sqe1res = SqE((L1res, L2res), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
+    sqe1res = SqE((L1res, L2res), lam=6.0, dlam=0.12, lSD=3.43, T=20)
 
     # # visualize
     # e = linspace(-5,5,151)
@@ -68,15 +68,15 @@ def test_from_transformer():
     L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=1)
     L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=1.5, width=0.4, c=0.0, weight=2)
     # Contruct a SqE model
-    sqe1 = SqE((L1, L2), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
+    sqe1 = SqE((L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
 
     ### Instantiate a transformer
     sqt1 = SqtTransformer(
         sqe1,
-        corrections=(), #(DetectorEfficiencyCorrectionFactor(sqe1, n_e=15000, n_lam=20),),
-        n_e=10000,
-        n_lam=20,
-        l_SD=3.43
+        corrections=(), #(DetectorEfficiencyCorrectionFactor(sqe1, ne=15000, nlam=20),),
+        ne=10000,
+        nlam=20,
+        lSD=3.43
     )
 
     ### Values for transformation
@@ -98,15 +98,15 @@ def test_from_Minuit_and_adjust_it():
     L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=1)
     L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=1.5, width=0.4, c=0.0, weight=2)
     # Contruct a SqE model
-    sqe1 = SqE((L1, L2), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
+    sqe1 = SqE((L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
 
     ### Instantiate a transformer
     sqt1 = SqtTransformer(
         sqe1,
-        corrections=(), #(DetectorEfficiencyCorrectionFactor(sqe1, n_e=15000, n_lam=20),),
-        n_e=10000,
-        n_lam=20,
-        l_SD=3.43
+        corrections=(), #(DetectorEfficiencyCorrectionFactor(sqe1, ne=15000, nlam=20),),
+        ne=10000,
+        nlam=20,
+        lSD=3.43
     )
 
     ### Values for transformation
@@ -141,7 +141,7 @@ def slow_vis_fitting():
     L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=1)
     L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=1.5, width=0.4, c=0.0, weight=2)
     # Contruct a SqE model
-    sqe1 = SqE((L1, L2), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
+    sqe1 = SqE((L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
 
     ### Instantiate a transformer
     # Consider detector efficiency
@@ -149,9 +149,9 @@ def slow_vis_fitting():
     sqt1 = SqtTransformer(
         sqe1,
         corrections=(decf,),
-        n_e=10000,
-        n_lam=20,
-        l_SD=3.43
+        ne=10000,
+        nlam=20,
+        lSD=3.43
     )
 
     ### Values for transformation

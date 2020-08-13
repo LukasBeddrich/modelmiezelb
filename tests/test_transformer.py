@@ -22,11 +22,11 @@ def test_transformer_init():
     L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
     L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.0, weight=1)
     # Contruct a SqE model
-    sqe1 = SqE(lines=(L2,), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
-    SqE(lines=(L1, L2), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
+    sqe1 = SqE(lines=(L2,), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
 
     ### Instantiate a transformer
-    SqtTransformer(sqe1, n_lam=20, n_e=10000)
+    SqtTransformer(sqe1, nlam=20, ne=10000)
 
 #------------------------------------------------------------------------------
 
@@ -35,15 +35,15 @@ def test_transformer_basics():
     # We need some lines
     L1 = LorentzianLine(name="Lorentzian1", domain=(-15.0, 15.0), x0=-1.0, width=0.4, c=0.0, weight=3)
     # Contruct a SqE model
-    sqe1 = SqE(lines=(L1,), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
+    sqe1 = SqE(lines=(L1,), lam=6.0, dlam=0.12, lSD=3.43, T=20)
 
     ### Instantiate a transformer
     sqt1 = SqtTransformer(
         sqe1,
-        corrections=(DetectorEfficiencyCorrectionFactor(sqe1, n_e=15000, n_lam=20),),
-        n_e=15000,
-        n_lam=20,
-        l_SD=3.43
+        corrections=(DetectorEfficiencyCorrectionFactor(sqe1, ne=15000, nlam=20),),
+        ne=15000,
+        nlam=20,
+        lSD=3.43
     )
 
     ### Values for transformation
@@ -87,10 +87,10 @@ def test_transform_arg_model():
     ### Instantiate a transformer
     sqt_arg = SqtTransformer(
         sqe_arg,
-        corrections=(DetectorEfficiencyCorrectionFactor(sqe_arg, n_e=15000, n_lam=20),),
-        n_e=15000,
-        n_lam=20,
-        l_SD=3.43
+        corrections=(DetectorEfficiencyCorrectionFactor(sqe_arg, ne=15000, nlam=20),),
+        ne=15000,
+        nlam=20,
+        lSD=3.43
     )
 
     ### Values for transformation
@@ -133,20 +133,20 @@ def test_manualtransform_arg_model():
     ### Creating energy, wavelength parameter space
     lam = sqe_arg.model_params["lam"]
     dlam = sqe_arg.model_params["dlam"]
-    n_lam = 5   #20
-    n_e = 10    #15000
-    l_SD = 3.43
+    nlam = 5   #20
+    ne = 10    #15000
+    lSD = 3.43
 
-    l = linspace(1-dlam*1.01, 1+dlam*1.01, n_lam) * lam
-    ll = tile(l,(n_e,1))
+    l = linspace(1-dlam*1.01, 1+dlam*1.01, nlam) * lam
+    ll = tile(l,(ne,1))
     a = -0.99999 * energy_from_lambda(l)
-    ee = linspace(a, 15.0, n_e)
+    ee = linspace(a, 15.0, ne)
 
     ### Values for transformation
     taus = logspace(-6, -1, 101)
     freqs = MIEZE_DeltaFreq_from_time(taus*1.0e-9, 3.43, 6.0)
 
-    mieze_phase = MIEZE_phase(ee, freqs[30], l_SD, ll)
+    mieze_phase = MIEZE_phase(ee, freqs[30], lSD, ll)
     det_eff = detector_efficiency(ee, ll, 1)
     tri_distr = triangle_distribution(ll, lam, dlam)
 
@@ -164,14 +164,14 @@ def test_export_load():
     L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
     L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.0, weight=1)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, l_SD=3.43, T=20)
+    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     # Add the detector efficiency correction
-    decf = DetectorEfficiencyCorrectionFactor(sqe, n_e=10000, n_lam=20)
+    decf = DetectorEfficiencyCorrectionFactor(sqe, ne=10000, nlam=20)
     # Add the energycutoff correction
-    eccf = EnergyCutOffCorrectionFactor(sqe, n_e=10000, n_lam=20 )
+    eccf = EnergyCutOffCorrectionFactor(sqe, ne=10000, nlam=20 )
 
     ### Instantiate a transformer
-    sqt = SqtTransformer(sqe, corrections=(decf, eccf), n_lam=20, n_e=10000, l_SD=3.43)
+    sqt = SqtTransformer(sqe, corrections=(decf, eccf), nlam=20, ne=10000, lSD=3.43)
 
     ### Export
     sqt_dict = sqt.export_to_dict()
@@ -189,9 +189,43 @@ def test_export_load():
     print("\n\nThis is the sqt loaded from dict")
     pprint(sqt_from_file.export_to_dict())
 
+#------------------------------------------------------------------------------
+
+def test_update_params():
+    ### Creating a SqE model for transformation
+    # We need some lines
+    L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
+    L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.0, weight=1)
+    # Contruct a SqE model
+    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    # Add the detector efficiency correction
+    decf = DetectorEfficiencyCorrectionFactor(sqe, ne=10000, nlam=20)
+    # Add the energycutoff correction
+    eccf = EnergyCutOffCorrectionFactor(sqe, ne=10000, nlam=20 )
+
+    ### Instantiate a transformer
+    sqt = SqtTransformer(sqe, corrections=(decf, eccf), nlam=20, ne=10000, lSD=3.43)
+    print("\n\nBefore update:")
+    pprint(sqt.export_to_dict())
+    tdict = dict(
+        T=30,
+        lam=8.0,
+        x0_Lorentzian2=-0.5,
+        width_Lorentzian2=0.025,
+        weight_Lorentzian1=5,
+        nlam=55,
+        some_wired_param=True
+    )
+    sqt.update_params(**tdict)
+    print("\n\nAfter update:")
+    pprint(sqt.export_to_dict())
+
+#------------------------------------------------------------------------------
+
 if __name__ == "__main__":
 #    test_transformer_init()
 #    test_transformer_basics()
 #    test_transform_arg_model()
 #    test_manualtransform_arg_model()
-    test_export_load()
+#    test_export_load()
+    test_update_params()

@@ -49,7 +49,7 @@ class CorrectionFactor:
 
     """
 
-    _required_params = ("n_e", "n_lam", "on")
+    _required_params = ("ne", "nlam")
 
     def __init__(self, sqe, **calc_params):
         """
@@ -122,6 +122,16 @@ class CorrectionFactor:
         with open(json_file, "w") as jsonfile:
             json.dump(self.export_to_dict(), jsonfile, indent=4)
         return None
+
+#------------------------------------------------------------------------------
+
+    def update_params(self, **new_params):
+        """
+
+        """
+        correction_specific_keys = set(self._required_params).intersection(set(new_params.keys()))
+        self.calc_params.update({k : new_params.pop(k) for k in correction_specific_keys})
+        self.sqe.update_params(**new_params)
 
 #------------------------------------------------------------------------------
 

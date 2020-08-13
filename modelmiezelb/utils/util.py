@@ -17,7 +17,7 @@ def constant_normed(start, stop):
 
 #------------------------------------------------------------------------------
 
-def energy_lambda_symetric_nrange(elow, eup, lam, dlam, n_e, n_lam):
+def energy_lambda_symetric_nrange(elow, eup, lam, dlam, ne, nlam):
     """
     Spans energy and lambda arrays for calculations
 
@@ -31,26 +31,26 @@ def energy_lambda_symetric_nrange(elow, eup, lam, dlam, n_e, n_lam):
         center wavelength
     dlam    :   float
         relative one sided width of the triangular wavelength distr.
-    n_e     :   int
+    ne     :   int
         number of energy points
-    n_lam   :   int
+    nlam   :   int
         number of lambda points
 
     Returns
     -------
     ee      :   numpy.ndarray
-        dim. (n_e, n_lam) energy array
+        dim. (ne, nlam) energy array
     ll      :   numpy.ndarray
-        dim. (n_e, n_lam) wavelength array
+        dim. (ne, nlam) wavelength array
     """
 
-    l = lam * np.linspace(1-dlam, 1+dlam, n_lam)
-    e = np.linspace(elow, eup, n_e)
+    l = lam * np.linspace(1-dlam, 1+dlam, nlam)
+    e = np.linspace(elow, eup, ne)
     return np.meshgrid(l, e)
 
 #------------------------------------------------------------------------------
 
-def energy_lambda_nrange(eup, lam, dlam, n_e, n_lam):
+def energy_lambda_nrange(eup, lam, dlam, ne, nlam):
     """
     Spans energy and lambda arrays for calculations, wehere lower
     energy boudary is given by neutron wavelength
@@ -63,23 +63,23 @@ def energy_lambda_nrange(eup, lam, dlam, n_e, n_lam):
         center wavelength
     dlam    :   float
         relative one sided width of the triangular wavelength distr.
-    n_e     :   int
+    ne     :   int
         number of energy points
-    n_lam   :   int
+    nlam   :   int
         number of lambda points
 
     Returns
     -------
     ee      :   numpy.ndarray
-        dim. (n_e, n_lam) energy array
+        dim. (ne, nlam) energy array
     ll      :   numpy.ndarray
-        dim. (n_e, n_lam) wavelength array
+        dim. (ne, nlam) wavelength array
     """
 
-    l = lam * np.linspace(1-dlam, 1+dlam, n_lam)
-    ll = np.tile(l,(n_e,1))
+    l = lam * np.linspace(1-dlam, 1+dlam, nlam)
+    ll = np.tile(l,(ne,1))
     a = -0.99999 * energy_from_lambda(l)
-    ee = np.linspace(a, eup, n_e)
+    ee = np.linspace(a, eup, ne)
     assert ee.shape == ll.shape
     return ee, ll
 
@@ -107,9 +107,9 @@ def energy_lambda_symetric_drange(elow, eup, lam, dlam, step_e, step_lam):
     Returns
     -------
     ee      :   numpy.ndarray
-        dim. (n_e, n_lam) energy array
+        dim. (ne, nlam) energy array
     ll      :   numpy.ndarray
-        dim. (n_e, n_lam) wavelength array
+        dim. (ne, nlam) wavelength array
     """
 
     return energy_lambda_symetric_nrange(
@@ -117,8 +117,8 @@ def energy_lambda_symetric_drange(elow, eup, lam, dlam, step_e, step_lam):
         eup,
         lam,
         dlam,
-        n_e=int((eup - elow)/step_e) + 1,
-        n_lam=int(2*dlam * lam / step_lam) + 1
+        ne=int((eup - elow)/step_e) + 1,
+        nlam=int(2*dlam * lam / step_lam) + 1
     )
 
     # l = lam * np.arange(1-dlam, 1+dlam+(step_lam/lam/2), step_lam/lam)
@@ -148,17 +148,17 @@ def energy_lambda_drange(eup, lam, dlam, step_e, step_lam):
     Returns
     -------
     ee      :   numpy.ndarray
-        dim. (n_e, n_lam) energy array
+        dim. (ne, nlam) energy array
     ll      :   numpy.ndarray
-        dim. (n_e, n_lam) wavelength array
+        dim. (ne, nlam) wavelength array
     """
 
     return energy_lambda_nrange(
         eup,
         lam,
         dlam,
-        n_e=int((eup - -0.99999 * energy_from_lambda(lam))/step_e) + 1,
-        n_lam=int(2*dlam * lam / step_lam) + 1
+        ne=int((eup - -0.99999 * energy_from_lambda(lam))/step_e) + 1,
+        nlam=int(2*dlam * lam / step_lam) + 1
     )
 
 #------------------------------------------------------------------------------

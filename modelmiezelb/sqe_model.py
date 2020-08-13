@@ -6,7 +6,9 @@ import json
 import modelmiezelb.arg_inel_mieze_model as arg
 from math import isclose
 from .utils.util import energy_from_lambda, bose_factor, wavelength_from_energy
+from .utils.helpers import get_key_for_grouping
 from .lineshape import InelasticCalcStrategy, QuasielasticCalcStrategy, LineFactory
+from itertools import groupby
 
 ###############################################################################
 
@@ -16,6 +18,8 @@ class SqE:
     """
     A Basic model for a scattering function in momentum and energy space.
     """
+
+    _required_params = ("lSD", "lam", "dlam", "T")
 
     def __init__(self, lines, **model_params):
         """
@@ -27,7 +31,7 @@ class SqE:
             contains modelmiezelb.lineshape.Line (spectral) shape of the peaks
         model_params    :   dict
             contains information to build the scattering function
-            l_SD    : sample-detector-distance [m]
+            lSD    : sample-detector-distance [m]
             lam     : mean wavelength of the neutrons
             dlam    : spread of the wavelength distr. (triangular)
             T       : Temperature of the sample (Bose-factor)
@@ -128,6 +132,34 @@ class SqE:
 
 #------------------------------------------------------------------------------
 
+    def _check_required(self, k):
+        """
+        Checks if a key specifies a required parameter. (self._required_params)
+
+        Parameters
+        ----------
+        k   :   str
+            key to be checked
+        """
+        return k in self._required_params
+
+#------------------------------------------------------------------------------
+
+    def update_params(self, **new_params):
+        """
+
+        """
+        strip_param_name = lambda k: k.split("_")[0]
+
+        grouped_params = {"model_params" : {}}
+        for key, groups in groupby(new_params.items(), get_key_for_grouping):
+            grouped_params[key] = dict((strip_param_name(k), v) for k, v in groups)
+        self.model_params.update(grouped_params["model_params"])
+        for line in self._lines:
+            line.update_line_params(**grouped_params[line.name])
+
+#------------------------------------------------------------------------------
+
     def calc(self, var):
         """
 
@@ -167,7 +199,7 @@ class SqE:
     #     """
 
     #     """
-    #     reference_set = {"lam", "dlam", "l_SD", "T"}
+    #     reference_set = {"lam", "dlam", "lSD", "T"}
     #     diff_set = reference_set.difference(set(self.model_params.keys()))
     #     if diff_set:
     #         raise KeyError(f"No values for model parameters '{diff_set}' were given!")
@@ -226,7 +258,7 @@ class SqE:
 
 class SqE_from_arg:
     def __init__(self, **model_params):
-        self.model_params = dict(lam=6.0, l_SD=3.43, dlam=0.12)
+        self.model_params = dict(lam=6.0, lSD=3.43, dlam=0.12)
         self.model_params.update(model_params)
 
 #------------------------------------------------------------------------------

@@ -65,7 +65,7 @@ def test_Lorentzian_normalization():
 
 #------------------------------------------------------------------------------
 
-def test_domain_enforcement_visually():
+def test_domainenforcement_visually():
 
     Lorentzian_short = LorentzianLine("Lorentzian_short", (-energy_from_lambda(6.0 * 0.88), 15), x0=-0.3, width=0.5, c=0.2)
     Lorentzian_mid = LorentzianLine("Lorentzian_mid", (-energy_from_lambda(6.0), 15), x0=-0.3, width=0.5, c=0.2)
@@ -80,7 +80,7 @@ def test_domain_enforcement_visually():
 
 #------------------------------------------------------------------------------
 
-def test_domain_enforcement():
+def test_domainenforcement():
     Lorentzian = LorentzianLine("Lorentzian1", (-5., 5), x0=-0.3, width=0.5, c=0.2)
 
     e_in_domain = np.linspace(-5.0, 5.0, 11)
@@ -123,5 +123,41 @@ def test_export_load():
 
 #------------------------------------------------------------------------------
 
+def test_get_param_names():
+    L1 = LorentzianLine(
+        name="Lorentzian",
+        domain=(-5.0, 5.0),
+        x0=-0.5,
+        width=0.4,
+        c=0.2
+    )
+    L2 = LorentzianLine(
+        name="Lorentzian",
+        domain=(-5.0, 5.0),
+        x0=-0.0,
+        width=0.4,
+        c=0.2
+    )
+    print(L1.get_param_names())
+    print(L2.get_param_names())
+
+#------------------------------------------------------------------------------
+
+def test_update_line_params():
+    L = LorentzianLine(
+        name="Lorentzian",
+        domain=(-5.0, 5.0),
+        x0=-0.5,
+        width=0.4,
+        c=0.2
+    )
+    print(L.export_to_dict())
+    tdict = dict(x0=1.0, c=0.0)
+    L.update_line_params(**tdict)
+    print("After update: ", L.export_to_dict())
+
+
 if __name__ == "__main__":
-    test_Lorentzian_normalization()
+#    test_Lorentzian_normalization()
+#    test_get_param_names()
+    test_update_line_params()

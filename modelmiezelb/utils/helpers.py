@@ -22,3 +22,19 @@ def flatten_list(nested_list):
                 q.extendleft(reversed(toFlat))
             else:
                 yield toFlat
+
+#------------------------------------------------------------------------------
+
+def get_key_for_grouping(item):
+    """
+    Returns the key for grouping params during update of SqE.
+
+    Parameters
+    ----------
+    item    : tuple
+        (key, value) as given by dict.items()
+    """
+    try:
+        return item[0].split("_")[1] # This should be the name of the line
+    except IndexError:
+        return "model_params"

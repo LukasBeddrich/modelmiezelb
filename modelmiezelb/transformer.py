@@ -58,6 +58,8 @@ class SqtTransformer(Transformer):
 
     """
 
+    _required_params = ("ne", "nlam", "lSD")
+
     def __init__(self, sqemodel, corrections=(), **params):
         """
         Instantiates a Transformer to calculate the Sqt curve
@@ -74,7 +76,7 @@ class SqtTransformer(Transformer):
         self.sqemodel = sqemodel
         self.corrections = corrections
 
-        self.params = dict(n_e=15000, n_lam=50, l_SD=None)
+        self.params = dict(ne=15000, nlam=50, lSD=None)
         self.params.update(params)
 
 #------------------------------------------------------------------------------
@@ -100,17 +102,17 @@ class SqtTransformer(Transformer):
         lam = self.sqemodel.model_params["lam"]
         dlam = self.sqemodel.model_params["dlam"]
 
-        l = linspace(1-dlam*1.01, 1+dlam*1.01, self.params["n_lam"]) * lam
-        ll = tile(l,(self.params["n_e"],1))
+        l = linspace(1-dlam*1.01, 1+dlam*1.01, self.params["nlam"]) * lam
+        ll = tile(l,(self.params["ne"],1))
         a = -0.99999 * energy_from_lambda(l)
-        ee = linspace(a, UPPER_INTEGRATION_LIMIT, self.params["n_e"])
+        ee = linspace(a, UPPER_INTEGRATION_LIMIT, self.params["ne"])
 
         ### Creating intgrand arrays
-        sqe = ones((self.params["n_e"], self.params["n_lam"]))
+        sqe = ones((self.params["ne"], self.params["nlam"]))
         corrs = tile(sqe, (len(self.corrections), 1, 1))
 
         ### Filling integrand arrays
-        mieze_phase = MIEZE_phase(ee, var, self.params["l_SD"], ll)
+        mieze_phase = MIEZE_phase(ee, var, self.params["lSD"], ll)
         det_eff = detector_efficiency(ee, ll, 1)
         tri_distr = triangle_distribution(ll, lam, dlam)
         for cidx, cf in enumerate(self.corrections):
@@ -184,7 +186,6 @@ class SqtTransformer(Transformer):
             json.dump(self.export_to_dict(), jsonfile, indent=4)
         return None
         
-
 #------------------------------------------------------------------------------
 
     @classmethod
@@ -198,3 +199,17 @@ class SqtTransformer(Transformer):
         for v in imported_transformer["sqemodel"].values():
             if 'domain' in v.keys(): v['domain'] = tuple(v['domain'])
         return cls.load_from_dict(**imported_transformer)
+
+#------------------------------------------------------------------------------
+
+    def update_params(self, **new_params):
+        """
+
+        """
+        transformer_specific_keys = set(self._required_params).intersection(set(new_params.keys()))
+        self.params.update({k : new_params[k] for k in transformer_specific_keys})
+        for corr in self.corrections:
+            corr.update_params(**new_params)
+        self.sqemodel.update_params(**new_params)
+        
+#------------------------------------------------------------------------------

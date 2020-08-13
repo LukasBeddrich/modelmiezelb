@@ -1,21 +1,21 @@
 {
     "params": {
-        "n_e": 10000,
-        "n_lam": 20,
-        "l_SD": 3.43
+        "ne": 10000,
+        "nlam": 20,
+        "lSD": 3.43
     },
     "corrections": [
         {
             "calc_params": {
-                "n_e": 10000,
-                "n_lam": 20
+                "ne": 10000,
+                "nlam": 20
             },
             "specifier": "detector_eff",
             "sqe": {
                 "model_params": {
                     "lam": 6.0,
                     "dlam": 0.12,
-                    "l_SD": 3.43,
+                    "lSD": 3.43,
                     "T": 20
                 },
                 "Lorentzian1": {
@@ -46,15 +46,15 @@
         },
         {
             "calc_params": {
-                "n_e": 10000,
-                "n_lam": 20
+                "ne": 10000,
+                "nlam": 20
             },
             "specifier": "energy_cutoff",
             "sqe": {
                 "model_params": {
                     "lam": 6.0,
                     "dlam": 0.12,
-                    "l_SD": 3.43,
+                    "lSD": 3.43,
                     "T": 20
                 },
                 "Lorentzian1": {
@@ -88,7 +88,7 @@
         "model_params": {
             "lam": 6.0,
             "dlam": 0.12,
-            "l_SD": 3.43,
+            "lSD": 3.43,
             "T": 20
         },
         "Lorentzian1": {

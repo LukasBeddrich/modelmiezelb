@@ -5,6 +5,7 @@ Module for line shapes in SqE modeling.
 import json
 import numpy as np
 from types import MethodType
+from math import isclose
 from inspect import getfullargspec
 from .utils.lineshape_functions import lorentzian, lorentzian_cdf
 from .utils.util import bose_factor
@@ -51,6 +52,10 @@ class Line:
     """
     An informal interface for Line classes.
     """
+    # Absolute tolerance when a line is considered quasi- instead of inelastic
+    QUASI_TO_INELASTIC_DISTINCTION_VALUE = 0.0001 # meV
+    _required_params = ()
+
     def __init__(self, name, domain, **line_params):
         """
         Parameters
@@ -123,6 +128,31 @@ class Line:
 
 #------------------------------------------------------------------------------
 
+    def _check_required(self, k):
+        """
+        Checks if a key specifies a required parameter. (self._required_params)
+
+        Parameters
+        ----------
+        k   :   str
+            key to be checked
+        """
+        return k in self._required_params
+
+#------------------------------------------------------------------------------
+
+    def get_param_names(self):
+        """
+
+        """
+        param_names = []
+        for k in self.line_params.keys():
+            if not (k=="x0" and isclose(self.line_params['x0'], 0.0, abs_tol=self.QUASI_TO_INELASTIC_DISTINCTION_VALUE)):
+                param_names.append("_".join((k, self.name)))
+        return param_names
+
+#------------------------------------------------------------------------------
+
     def update_line_params(self, **new_line_params):
         """
         Updates line parameter
@@ -132,8 +162,10 @@ class Line:
         new_line_params : dict
             new parameter for the modeled line
         """
+        # strip_param_name = lambda k: k.split("_")[0]
+        # update = {strip_param_name(k) : i for k, i in new_line_params.items() if self._check_required(strip_param_name(k))}
+        # self.line_params.update(update)
         self.line_params.update(new_line_params)
-#        self.check_params()
 
 #------------------------------------------------------------------------------
 
@@ -190,6 +222,9 @@ class LorentzianLine(Line):
     """
     A Lorentzian shaped excitation Line.
     """
+
+    _required_params = ("x0", "width", "c", "weight")
+
     def normalize(self):
         """
         Calculates normalization factor of a Lorentzian Line for its domain
