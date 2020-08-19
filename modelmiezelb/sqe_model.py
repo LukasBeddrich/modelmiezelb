@@ -5,10 +5,12 @@
 import json
 import modelmiezelb.arg_inel_mieze_model as arg
 from math import isclose
+from numpy import union1d, linspace
 from .utils.util import energy_from_lambda, bose_factor, wavelength_from_energy
 from .utils.helpers import get_key_for_grouping
 from .lineshape import InelasticCalcStrategy, QuasielasticCalcStrategy, LineFactory
 from itertools import groupby
+from functools import reduce
 
 ###############################################################################
 
@@ -50,6 +52,45 @@ class SqE:
 
         """
         return self.calc(var)
+
+#------------------------------------------------------------------------------
+
+    def get_peak_domain(self):
+        """
+        NOTE
+        ----
+        This does not consider overlapping intervals!
+        Needs to be fixed for better adaptive grid initialization
+        """
+        peak_domains = []
+        for line in self._lines:
+            line_peak_domain = line.get_peak_domain()
+            if abs(line_peak_domain[0]) == line_peak_domain[1]:
+                peak_domains.append(line_peak_domain)
+            elif line_peak_domain[0] <= line_peak_domain[1] * -1:
+                absmax = max((abs(x) for x in line_peak_domain))
+                peak_domains.append((-1 * absmax, absmax))
+            else:
+                peak_domains.append(line_peak_domain)
+                peak_domains.append(tuple(sorted([-1 * d for d in line_peak_domain])))
+        return peak_domains
+
+#------------------------------------------------------------------------------
+
+    def get_adaptive_integration_grid(self, npeak, nrest):
+        """
+
+        """
+        # first grid is a coarse grid over entire domain
+        grids = [linspace(
+            energy_from_lambda(-0.9999 * self.model_params["lam"]),
+            UPPER_INTEGRATION_LIMIT,
+            nrest
+        )]
+        for line in self._lines:
+            grids.append(self.apply_grid_strategy(line, npeak))
+        # unites all individual grids to one.
+        return reduce(union1d, grids)
 
 #------------------------------------------------------------------------------
 
@@ -188,10 +229,21 @@ class SqE:
         """
 
         """
-        if isclose(line.line_params["x0"], 0.0, abs_tol=0.001):
+        if isclose(line.line_params["x0"], 0.0, abs_tol=line.QUASI_TO_INELASTIC_DISTINCTION_VALUE):
             return self.quasielastic.calc(line, var)
         else:
             return self.inelastic.calc(line, var)
+
+#------------------------------------------------------------------------------
+
+    def apply_grid_strategy(self, line, npeak=1000):
+        """
+
+        """
+        if isclose(line.line_params["x0"], 0.0, abs_tol=line.QUASI_TO_INELASTIC_DISTINCTION_VALUE):
+            return self.quasielastic.get_adaptive_integration_grid(line, npeak)
+        else:
+            return self.inelastic.get_adaptive_integration_grid(line, npeak)
 
 #------------------------------------------------------------------------------
 

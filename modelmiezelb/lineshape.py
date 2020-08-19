@@ -224,6 +224,7 @@ class LorentzianLine(Line):
     """
 
     _required_params = ("x0", "width", "c", "weight")
+    INTEGRATION_WIDTH_SCALE = 5.0
 
     def normalize(self):
         """
@@ -283,6 +284,17 @@ class LorentzianLine(Line):
         """
         # return lorentzian(var, x0, width) + lorentzian(var, -x0, width) + c
         return lorentzian(var, x0, width)
+
+#------------------------------------------------------------------------------
+
+    def get_peak_domain(self, splitted_domain=False):
+        """
+
+        """
+        return (
+            self.line_params["x0"] - self.INTEGRATION_WIDTH_SCALE * self.line_params["width"],
+            self.line_params["x0"] + self.INTEGRATION_WIDTH_SCALE * self.line_params["width"]
+        )
 
 #------------------------------------------------------------------------------
 
@@ -388,6 +400,19 @@ class QuasielasticCalcStrategy:
     def normalize(self, line):
         return 1.0 / (line.integrate() + line.line_params["c"] * (max(line.domain) - min(line.domain)))
 
+#------------------------------------------------------------------------------
+
+    def get_peak_domain(self, line):
+        return line.get_peak_domain()
+
+#------------------------------------------------------------------------------
+
+    def get_adaptive_integration_grid(self, line, npeak=1000):
+        """
+
+        """
+        return np.linspace(*self.get_peak_domain(line), npeak, endpoint=False)
+
 ###############################################################################
 ###############################################################################
 ###############################################################################
@@ -451,3 +476,37 @@ class InelasticCalcStrategy:
         retnorm += gain_line.integrate()
         retnorm += line.line_params["c"] * (max(line.domain) - min(line.domain))
         return 1.0 / retnorm
+
+#------------------------------------------------------------------------------
+
+    def get_peak_domain(self, line):
+        """
+
+        """
+        line_dict = line.export_to_dict()
+        line_dict["x0"] = abs(line_dict["x0"])
+        pos_domain = line.load_from_dict(**line_dict).get_peak_domain()
+        line_dict["x0"] = -1 * line_dict["x0"]
+        neg_domain = line.load_from_dict(**line_dict).get_peak_domain()
+
+        if neg_domain[1] >= pos_domain[0]:
+            return (neg_domain[0], pos_domain[1])
+        else:
+            return neg_domain, pos_domain
+
+#------------------------------------------------------------------------------
+
+    def _grid(self, domain, n):
+        return np.linspace(*domain, n, endpoint=False)
+
+#------------------------------------------------------------------------------
+
+    def get_adaptive_integration_grid(self, line, npeak=1000):
+        """
+
+        """
+        d1, d2 = self.get_peak_domain(line)
+        if isinstance(d1, tuple):
+            return np.union1d(self._grid(d1, npeak), self._grid(d2, npeak))
+        elif isinstance(d1, float):
+            return self._grid((d1, d2), 2*npeak)

@@ -90,8 +90,36 @@ def test_update_params():
 
 #------------------------------------------------------------------------------
 
+def test_get_peak_domain():
+    # We need some lines
+    L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.2, c=0.0, weight=2)
+    L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.2, width=0.1, c=0.02, weight=1)
+    # Contruct a SqE model
+    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    print("L1 peak domain: ", L1.get_peak_domain())
+    print("L2 peak domain: ", L2.get_peak_domain())
+    print("sqe peak domain: ", sqe.get_peak_domain())
+
+#------------------------------------------------------------------------------
+
+def test_get_adaptive_integration_grid():
+    # We need some lines
+    L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.2, c=0.0, weight=2)
+    L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-0.5, width=0.07, c=0.0, weight=1)
+    # Contruct a SqE model
+    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+
+
+    print(sqe.quasielastic.get_adaptive_integration_grid(L1, 10))
+    print(sqe.inelastic.get_adaptive_integration_grid(L2, 5))
+    print(sqe.get_adaptive_integration_grid(npeak=5, nrest=10))
+
+#------------------------------------------------------------------------------
+
 if __name__ == "__main__":
 #    test_sqe_normalization()
 #    test_sqe_arg()
 #    test_export_load()
-    test_update_params()
+#    test_update_params()
+    test_get_peak_domain()
+#    test_get_adaptive_integration_grid()

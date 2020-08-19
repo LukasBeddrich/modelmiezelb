@@ -5,7 +5,7 @@ import os
 #------------------------------------------------------------------------------
 from modelmiezelb.utils.lineshape_functions import gaussian, lorentzian, fqe_I
 from modelmiezelb.utils.util import energy_from_lambda
-from modelmiezelb.lineshape import Line, LorentzianLine, LineFactory
+from modelmiezelb.lineshape import Line, LorentzianLine, LineFactory, QuasielasticCalcStrategy, InelasticCalcStrategy
 #------------------------------------------------------------------------------
 # Path quarrels
 testdir = os.path.dirname(os.path.abspath(__file__))
@@ -71,12 +71,12 @@ def test_domainenforcement_visually():
     Lorentzian_mid = LorentzianLine("Lorentzian_mid", (-energy_from_lambda(6.0), 15), x0=-0.3, width=0.5, c=0.2)
     Lorentzian_long = LorentzianLine("Lorentzian_long", (-energy_from_lambda(6.0 * 1.12), 15), x0=-0.3, width=0.5, c=0.2)
 
-    e = np.linspace(-10.0, 20.0, 1201)
+    # e = np.linspace(-10.0, 20.0, 1201)
 
-    plt.plot(e, Lorentzian_short(e))
-    plt.plot(e, Lorentzian_mid(e), ls="--", lw=2.0)
-    plt.plot(e, Lorentzian_long(e), ls="dotted", lw=4.0)
-#    plt.show()
+    # plt.plot(e, Lorentzian_short(e))
+    # plt.plot(e, Lorentzian_mid(e), ls="--", lw=2.0)
+    # plt.plot(e, Lorentzian_long(e), ls="dotted", lw=4.0)
+    # plt.show()
 
 #------------------------------------------------------------------------------
 
@@ -156,8 +156,95 @@ def test_update_line_params():
     L.update_line_params(**tdict)
     print("After update: ", L.export_to_dict())
 
+#------------------------------------------------------------------------------
+
+def test_get_peak_domain():
+    L = LorentzianLine(
+        name="Lorentzian",
+        domain=(-15.0, 15.0),
+        x0=-0.0,
+        width=0.4,
+        c=0.2
+    )
+    print(f"The peak domain: {L.get_peak_domain()}")
+
+    etotal = np.linspace(*L.domain, num=10000)
+    epeak = np.linspace(*L.get_peak_domain(), num=1333)
+    e = np.concatenate((
+        np.linspace(L.domain[0], L.get_peak_domain()[0], 500),
+        epeak,
+        np.linspace(L.get_peak_domain()[1], L.domain[1], 500)
+    ))
+
+    print(f"Integral (trapz) over total domain: {np.trapz(L(etotal), etotal)}")
+    print(f"Integral (trapz) over total (splitted) domain: {np.trapz(L(e), e)}")
+    print(f"Integral (trapz) over peak domain: {np.trapz(L(epeak), epeak)}")
+
+#------------------------------------------------------------------------------
+
+def test_get_peak_domain_strategy():
+    inelstrat = InelasticCalcStrategy(20.0)
+    Lwide = LorentzianLine(
+        name="Lwide",
+        domain=(-15.0, 15.0),
+        x0=-0.5,
+        width=0.4,
+        c=0.0
+    )
+    Lnarrow = LorentzianLine(
+        name="Lnarrow",
+        domain=(-15.0, 15.0),
+        x0=-0.5,
+        width=0.07,
+        c=0.0
+    )
+    print(inelstrat.get_peak_domain(Lwide))
+    print(inelstrat.get_peak_domain(Lnarrow))
+
+#------------------------------------------------------------------------------
+
+def test_get_adaptive_integration_grid():
+    quasistrat = QuasielasticCalcStrategy()
+    inelstrat = InelasticCalcStrategy(20.0)
+    Lwide = LorentzianLine(
+        name="Lwide",
+        domain=(-15.0, 15.0),
+        x0=-0.5,
+        width=0.4,
+        c=0.0
+    )
+    Lnarrow = LorentzianLine(
+        name="Lnarrow",
+        domain=(-15.0, 15.0),
+        x0=-0.5,
+        width=0.07,
+        c=0.0
+    )
+    Lquasi = LorentzianLine(
+        name="Lquasi",
+        domain=(-15.0, 15.0),
+        x0=0.0,
+        width=0.1,
+        c=0.0
+    )
+
+    print("Quasielastic domain retrieval.")
+    print(quasistrat.get_peak_domain(Lquasi))
+    print(quasistrat.get_adaptive_integration_grid(Lquasi, 5))
+
+    print("Inelelastic domain retrieval.")
+    print(inelstrat.get_peak_domain(Lnarrow))
+    print(inelstrat.get_adaptive_integration_grid(Lnarrow, 5))
+    print(inelstrat.get_peak_domain(Lwide))
+    print(inelstrat.get_adaptive_integration_grid(Lwide, 5))
+
+
+#------------------------------------------------------------------------------
 
 if __name__ == "__main__":
 #    test_Lorentzian_normalization()
 #    test_get_param_names()
-    test_update_line_params()
+#    test_update_line_params()
+#    test_get_peak_domain()
+#    test_get_peak_domain_strategy()
+    test_get_adaptive_integration_grid()
