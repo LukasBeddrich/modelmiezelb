@@ -25,6 +25,13 @@ def flatten_list(nested_list):
 
 #------------------------------------------------------------------------------
 
+def merge_two_dicts(x, y):
+    z = x.copy()   # start with x's keys and values
+    z.update(y)    # modifies z with y's keys and values & returns None
+    return z
+
+#------------------------------------------------------------------------------
+
 def get_key_for_grouping(item):
     """
     Returns the key for grouping params during update of SqE.
@@ -38,3 +45,22 @@ def get_key_for_grouping(item):
         return item[0].split("_")[1] # This should be the name of the line
     except IndexError:
         return "model_params"
+
+#------------------------------------------------------------------------------
+
+def format_param_dict_for_logger(params_dict):
+    """
+
+    """
+    maxchars = max([len(key) for key in params_dict.keys()])
+    return "\n".join([f"{key.rjust(maxchars)} : {val}" for key, val in params_dict.items()])
+
+#------------------------------------------------------------------------------
+
+def format_sqt_lines_for_logger(sqt):
+    """
+
+    """
+    maxchars = max([len(line.name) for line in sqt.sqemodel._lines])
+
+    return "\n\n".join([f"{line.name.rjust(maxchars)} :\n{'-' * (maxchars + 2)}\n{format_param_dict_for_logger(line.line_params)}" for line in sqt.sqemodel._lines])

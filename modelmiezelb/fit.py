@@ -6,6 +6,8 @@ from math import isclose
 from numpy import power, sum, array
 from iminuit import Minuit
 
+from modelmiezelb.utils.helpers import format_param_dict_for_logger, format_sqt_lines_for_logger
+
 ###############################################################################
 
 class FitModelCreator:
@@ -35,7 +37,7 @@ class FitModelCreator:
 #------------------------------------------------------------------------------
 
     @classmethod
-    def from_sqe(cls, sqe, x, y, yerr, initguess):
+    def from_sqe(cls, sqe, x, y, yerr, initguess, logger=None):
         """
         Creates a 'Minuit' object from `SqE´ model using the '.from_array_func'
         """
@@ -57,19 +59,33 @@ class FitModelCreator:
 #------------------------------------------------------------------------------
 
     @classmethod
-    def from_transformer(cls, transformer, x, y, yerr, initguess):
+    def from_transformer(cls, transformer, x, y, yerr, initguess, logger=None):
         """
         Creates a 'Minuit' object from `transformer´ using the '.from_array_func'
         """
         param_names = cls.get_param_names(sqe=transformer.sqemodel)
         transformer_internal = transformer.load_from_dict(**transformer.export_to_dict())
 
-        def calc(params):
-            params_dict = dict(zip(param_names, params))
-            transformer_internal.update_params(**params_dict)
+        if logger:
+            def calc(params):
+                params_dict = dict(zip(param_names, params))
+                logger.info(f"\nParameters given to `calc´:\n{format_param_dict_for_logger(params_dict)}\n\n")
+                transformer_internal.update_params(**params_dict)
+                logger.info(f"\nParameters of Lines after update:\n{format_sqt_lines_for_logger(transformer_internal)}\n\n")
             
-            sqtvals = array([transformer_internal(xval) for xval in x])
-            return sum(power((y - sqtvals) / yerr, 2))
+                sqtvals = array([transformer_internal(xval) for xval in x])
+                cost = sum(power((y - sqtvals) / yerr, 2))
+                logger.info(f"y =      {', '.join([str(val)[:7] for val in y])} \ny_theo = {', '.join([str(val)[:7] for val in sqtvals])}")
+                logger.info(f"\nThe cost value was calculated to be: {cost}\n\n")
+                return cost
+        else:
+            def calc(params):
+                params_dict = dict(zip(param_names, params))
+                transformer_internal.update_params(**params_dict)
+            
+                sqtvals = array([transformer_internal(xval) for xval in x])
+                return sum(power((y - sqtvals) / yerr, 2))
+
         return Minuit.from_array_func(calc, initguess, name=param_names, errordef=1)
 
 #------------------------------------------------------------------------------
@@ -91,3 +107,22 @@ class FitModelCreator:
             errordef=1,
             **fitargs
         )
+
+#------------------------------------------------------------------------------
+
+    @classmethod
+    def _get_chi_square_from_transformer(cls, transformer, x, y, yerr):
+        """
+        Creates a chi-square function from a transformer object.
+        """
+        param_names = cls.get_param_names(sqe=transformer.sqemodel)
+        transformer_internal = transformer.load_from_dict(**transformer.export_to_dict())
+
+        def calc(params):
+            params_dict = dict(zip(param_names, params))
+            transformer_internal.update_params(**params_dict)
+            
+            sqtvals = array([transformer_internal(xval) for xval in x])
+            return sum(power((y - sqtvals) / yerr, 2))
+
+        return calc
