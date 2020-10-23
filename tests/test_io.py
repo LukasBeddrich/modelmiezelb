@@ -3,7 +3,7 @@ import numpy as np
 ###############################################################################
 from pathlib import Path
 ###############################################################################
-from modelmiezelb.io import NPZExporter, JSONExporter, JSONLoader, ContrastData, IOManager, NPZLoader, Loader
+from modelmiezelb.io import NPZExporter, JSONExporter, JSONLoader, ContrastData, IOManager, NPZLoader, Exporter, Loader
 ###############################################################################
 # Path quarrels
 testdir = Path(__file__).absolute().parent
@@ -13,11 +13,24 @@ def test_IOManager():
     """
 
     """
-    io1 = IOManager(resources, 'IO1')
-    assert isinstance(io1, IOManager)
-    assert io1.io_path.is_dir()
+    io_npz_json = IOManager(NPZLoader(), JSONExporter())
+    io_json_npz = IOManager(JSONLoader(), NPZExporter())
 
-    print(io1.io_path)
+    assert isinstance(io_npz_json, IOManager)
+    assert isinstance(io_json_npz.loader, Loader)
+    assert isinstance(io_json_npz.exporter, Exporter)
+
+    # Importing a npz file
+    cd = io_npz_json.load(resources / "test_NPZExporter.npz")[0]
+    print(cd.filename)
+    # Exporting it to json format
+    io_npz_json.export((resources / "test_JSONExporter.json", cd))
+
+    # Importing the same file again
+    cdloaded = io_json_npz.load(resources / "test_JSONExporter.json")[0]
+    print(cdloaded.filename)
+    # Exporting now to a npz file
+    io_json_npz.export((resources / "test_IOManager_npzexport", cdloaded))
 
 #------------------------------------------------------------------------------
 
@@ -104,9 +117,9 @@ def test_JSONExporter():
 #------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-#    test_IOManager()
+    test_IOManager()
 #    test_NPZloader()
 #    test_JSONLoader()
 #    test_ContrastData()
 #    test_NPZExporter()
-    test_JSONExporter()
+#    test_JSONExporter()
