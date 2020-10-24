@@ -1,8 +1,10 @@
+from iminuit import Minuit
+
 from modelmiezelb.lineshape import LorentzianLine
 from modelmiezelb.sqe_model import SqE, SqE_from_arg
 from modelmiezelb.transformer import SqtTransformer
 from modelmiezelb.fit import FitModelCreator
-from modelmiezelb.utils.helpers import format_param_dict_for_logger, format_sqt_lines_for_logger
+from modelmiezelb.utils.helpers import format_param_dict_for_logger, format_sqt_lines_for_logger, minuit_to_dict, results_to_dict
 ###############################################################################
 
 ### Creating a SqE model for transformation
@@ -24,6 +26,31 @@ def test_format_param_dict_for_logger():
 def test_format_sqt_lines_for_logger():
     print(format_sqt_lines_for_logger(sqt))
 
+#------------------------------------------------------------------------------
+
+def test_fit_to_dict():
+    def line(x, m, b):
+        return x*m+b
+    
+    def line_leastsquares(m, b):
+        x = [0, 1, 2, 3, 4, 5]
+        y = [-0.97282088, -0.6557933 ,  0.29108299,  3.2472892 ,  5.24995331, 6.19579491]
+        yerr = [0.69993262, 1.39208117, 0.75715843, 0.4763095 , 0.23838386, 1.4690164 ]
+
+        chisquare = 0
+        for idx in range(len(x)):
+            chisquare += ((y[idx] - line(x[idx], m, b)) / yerr[idx])**2
+        return chisquare
+
+    m = Minuit(line_leastsquares, errordef=1, m=3, b=0, pedantic=False)
+    fmin, res = m.migrad()
+
+    print(f"Dict from Minuit: {minuit_to_dict(m)}\n\n")
+    print(f"Dict from Results: {results_to_dict(res, fmin)}")
+
+#------------------------------------------------------------------------------
+
 if __name__ == "__main__":
-    test_format_param_dict_for_logger()
-    test_format_sqt_lines_for_logger()
+    # test_format_param_dict_for_logger()
+    # test_format_sqt_lines_for_logger()
+    test_fit_to_dict()

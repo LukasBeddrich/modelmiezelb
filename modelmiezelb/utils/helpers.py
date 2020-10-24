@@ -64,3 +64,43 @@ def format_sqt_lines_for_logger(sqt):
     maxchars = max([len(line.name) for line in sqt.sqemodel._lines])
 
     return "\n\n".join([f"{line.name.rjust(maxchars)} :\n{'-' * (maxchars + 2)}\n{format_param_dict_for_logger(line.line_params)}" for line in sqt.sqemodel._lines])
+
+#------------------------------------------------------------------------------
+
+def minuit_to_dict(minuit):
+    """
+
+    """
+    fitparams = {}
+    fmin = minuit.fmin
+    params = minuit.params
+
+    fitparams["fval"] = fmin.fval
+    fitparams["edm"] = fmin.edm
+    fitparams["is_valid"] = fmin.is_valid
+    fitparams["ncalls"] = fmin.ncalls
+
+    for param in params:
+        fitparams[param["name"]] = (param["value"], param["error"], param["is_fixed"])
+
+    return fitparams
+
+#------------------------------------------------------------------------------
+
+def results_to_dict(params, fmin):
+    """
+
+    """
+    fitparams = {}
+
+    fitparams["fval"] = fmin.fval
+    fitparams["edm"] = fmin.edm
+    fitparams["is_valid"] = fmin.is_valid
+    fitparams["ncalls"] = fmin.ncalls
+
+    for param in params:
+        fitparams[param["name"]] = (param["value"], param["error"], param["is_fixed"])
+
+    return fitparams
+
+#------------------------------------------------------------------------------

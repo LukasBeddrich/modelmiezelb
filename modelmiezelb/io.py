@@ -106,7 +106,7 @@ class ContrastData:
         fitparams :   dict, NoneType
             parameters and values associated with a model fit to this data
             All optimized model parameters contained in self.fitparams["params"]
-            where each parameter has a name and a list [value, error]
+            where each parameter has a name and a tuple (value, error, is_fixed)
             everthing else is optional.
         descrstr  :   str
             A further description of the data set
