@@ -71,7 +71,7 @@ def minuit_to_dict(minuit):
     """
 
     """
-    fitparams = {}
+    fitparams = {"params" : {}}
     fmin = minuit.fmin
     params = minuit.params
 
@@ -81,7 +81,7 @@ def minuit_to_dict(minuit):
     fitparams["ncalls"] = fmin.ncalls
 
     for param in params:
-        fitparams[param["name"]] = (param["value"], param["error"], param["is_fixed"])
+        fitparams["params"][param["name"]] = (param["value"], param["error"], param["is_fixed"])
 
     return fitparams
 
@@ -91,7 +91,7 @@ def results_to_dict(params, fmin):
     """
 
     """
-    fitparams = {}
+    fitparams = {"params" : {}}
 
     fitparams["fval"] = fmin.fval
     fitparams["edm"] = fmin.edm
@@ -99,7 +99,7 @@ def results_to_dict(params, fmin):
     fitparams["ncalls"] = fmin.ncalls
 
     for param in params:
-        fitparams[param["name"]] = (param["value"], param["error"], param["is_fixed"])
+        fitparams["params"][param["name"]] = (param["value"], param["error"], param["is_fixed"])
 
     return fitparams
 
