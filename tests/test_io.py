@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 ###############################################################################
 from pathlib import Path
 ###############################################################################
@@ -116,10 +117,30 @@ def test_JSONExporter():
 
 #------------------------------------------------------------------------------
 
+def test_visualize():
+    """
+
+    """
+    loader = NPZLoader()
+    cd = ContrastData(*loader.load(resources / "test_io_contrastdata_foil0_arc5.npz"))
+
+    fig, ax = plt.subplots(figsize=(9, 5))
+    fig, ax = cd.visualize(fig, ax)
+
+    ax.set_xscale("log")
+    ax.set_xlabel("$\\tau_\\mathrm{MIEZE}$", fontsize=20)
+    ax.set_ylabel("Contrast [arb. u.]", fontsize=20)
+    ax.legend(loc="center left", fontsize=14)
+    
+    # plt.show()
+
+#------------------------------------------------------------------------------
+
 if __name__ == "__main__":
-    test_IOManager()
+#    test_IOManager()
 #    test_NPZloader()
 #    test_JSONLoader()
 #    test_ContrastData()
 #    test_NPZExporter()
 #    test_JSONExporter()
+    test_visualize()

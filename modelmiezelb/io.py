@@ -5,6 +5,8 @@
 import json
 from pathlib import Path
 from numpy import array, load, savez_compressed
+#------------------------------------------------------------------------------
+from modelmiezelb.utils.util import MIEZE_DeltaFreq_from_time
 
 class IOManager:
     """
@@ -161,6 +163,30 @@ class ContrastData:
             raise KeyError(f"{key} is not a valid key to retrieve data. Call ContrastData.get('keys') to show available keys")
 
         return self.data[index]
+
+#------------------------------------------------------------------------------
+
+    def visualize(self, fig, ax):
+        """
+        Plots the data content of self.
+
+        Parameters
+        ----------
+        fig :   matplotlib.figure.Figure
+            figure of the axes instance in which data will be plotted
+        ax  :   matplotlib.axes.Axes
+            axes instance in which data will be plotted
+        
+        Return
+        ------
+        fig, ax
+        """
+
+        for idx, (k, d) in enumerate(zip(self.keys, self.data)):
+            ax.errorbar(d[0], d[-2], d[-1], ls="", marker="o", color=f"C{idx}", label=f"{k}")
+
+        return fig, ax
+
 
 ###############################################################################
 ###############################################################################
