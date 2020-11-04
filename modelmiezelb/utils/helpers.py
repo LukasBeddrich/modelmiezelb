@@ -104,3 +104,20 @@ def results_to_dict(params, fmin):
     return fitparams
 
 #------------------------------------------------------------------------------
+
+def fitparams_for_update(fitparams):
+    """
+    Extracts a dictionary of fitparameters from 
+    modelmiezelb.io.ContrastData.fitparams for updating e.g. a sqe model
+    via modelmiezelb.sqe_model.SqE.update_params
+
+    Parameters
+    ----------
+    fitparams :   modelmiezelb.io.ContrastData.fitparam
+
+    Return
+    ------
+              :   dict
+        parameters re-packed for update_params
+    """
+    return {k : v[0] for k, v in fitparams["params"].items()}
