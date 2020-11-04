@@ -5,7 +5,7 @@ import os
 #------------------------------------------------------------------------------
 from modelmiezelb.utils.lineshape_functions import gaussian, lorentzian, fqe_I
 from modelmiezelb.utils.util import energy_from_lambda
-from modelmiezelb.lineshape import Line, LorentzianLine, LineFactory, QuasielasticCalcStrategy, InelasticCalcStrategy
+from modelmiezelb.lineshape import Line, LorentzianLine, F_ILine, F_cLine, LineFactory, QuasielasticCalcStrategy, InelasticCalcStrategy
 #------------------------------------------------------------------------------
 # Path quarrels
 testdir = os.path.dirname(os.path.abspath(__file__))
@@ -47,13 +47,22 @@ def test_Lines():
 #    l2.check_params()
     l2.update_line_params(c=0.2)
 
+    l3 = F_cLine("FcLine1", (-15, 15), x0=0.0, width=0.02, A=350.0, q=0.023, c=0.0, weight=1.0)
+    l3.update_line_params(width=0.1)
+    l3.update_domain((-1.0, 1.0))
+
+    l4 = F_ILine("FILine1", (-15, 15), x0=0.0, width=0.02, A=350.0, q=0.023, kappa=0.01, c=0.0, weight=1.0)
+    l4.update_line_params(kappa=0.015)
+
     e = np.linspace(-1.5, 1.5, 16)
     print("Returned by 'l1.calc': ", l1.calc(e, **l1.line_params))
     print("Returned by 'l2(e)': ", l2(e))
+    print("Returned by 'F_cLine': ", l3(e))
+    print("Returned by 'F_ILine': ", l4(e))
 
 #------------------------------------------------------------------------------
 
-def test_Lorentzian_normalization():
+def test_normalization():
     Lorentzian = LorentzianLine("Lorentzian1", (-5., 5), x0=0.0, width=0.5, c=0.0)
     n = Lorentzian.normalize()
 
@@ -62,6 +71,36 @@ def test_Lorentzian_normalization():
     val, err = quad(to_integrate, min(Lorentzian.domain), max(Lorentzian.domain))
     print(f"Integration value: {val:.5f} +- {err:.5f}   |   normalization factor: {n:.5f}")
     print(f"Normalized Line area: {val*n}")
+
+    # - - - - - - - - - - - - - - - - - - - -
+
+    F_c = F_cLine("FcLine1", (-15, 15), x0=0.0, width=0.02, A=350.0, q=0.023, c=0.0, weight=1.0)
+    nfc = F_c.normalize()
+    ifc = F_c.integrate()
+
+    x = np.linspace(-1000, 1000, 5000000)
+    y = F_c.calc(x, **F_c.line_params)
+    ifctrapz = np.trapz(y, x)
+    ifcquadv, ifcquade = quad(lambda x: nfc * F_c(x), min(F_c.domain), max(F_c.domain))
+    print(f"{F_c.line_params}")
+    print(f"Standard Integration value for 10000 steps: {ifc}")
+    print(f"QUADPACK Integration value (after normal.): {ifcquadv} +- {ifcquade}")
+    print(f"TRAPEZOID Integration value -1e3 from 1e3 : {ifctrapz}")
+
+    # - - - - - - - - - - - - - - - - - - - -
+
+    F_I = F_ILine("FILine1", (-15, 15), x0=0.0, width=0.02, A=350.0, q=0.023, kappa=0.01, c=0.0, weight=1.0)
+    nfI = F_I.normalize()
+    ifI = F_I.integrate()
+
+    x = np.linspace(-1000, 1000, 5000000)
+    y = F_I.calc(x, **F_I.line_params)
+    ifItrapz = np.trapz(y, x)
+    ifIquadv, ifIquade = quad(lambda x: F_I(x), min(F_I.domain), max(F_I.domain))
+    print(f"{F_I.line_params}")
+    print(f"Standard Integration value for 10000 steps: {ifI}")
+    print(f"QUADPACK Integration value                : {ifIquadv} +- {ifIquade}")
+    print(f"TRAPEZOID Integration value -1e3 from 1e3 : {ifItrapz}")
 
 #------------------------------------------------------------------------------
 
@@ -82,14 +121,19 @@ def test_domainenforcement_visually():
 
 def test_domainenforcement():
     Lorentzian = LorentzianLine("Lorentzian1", (-5., 5), x0=-0.3, width=0.5, c=0.2)
+    F_c = F_cLine("FcLine1", (-15, 15), x0=0.0, width=0.02, A=350.0, q=0.023, c=0.0, weight=1.0)
 
     e_in_domain = np.linspace(-5.0, 5.0, 11)
     e_beyond_domain = np.linspace(-10.0, 10.0, 21)
 
-    p1 = Lorentzian(e_in_domain)
-    p2 = Lorentzian(e_beyond_domain)
+    pL1 = Lorentzian(e_in_domain)
+    pL2 = Lorentzian(e_beyond_domain)
 
-    assert np.all(p1 == p2[Lorentzian.within_domain(e_beyond_domain)])
+    pF1 = F_c(e_in_domain)
+    pF2 = F_c(e_beyond_domain)
+
+    assert np.all(pL1 == pL2[Lorentzian.within_domain(e_beyond_domain)])
+    assert np.all(pF1 == pF2[Lorentzian.within_domain(e_beyond_domain)])
 
 #------------------------------------------------------------------------------
 
@@ -102,7 +146,34 @@ def test_creating_line_with_LineFactory():
         width=0.4,
         c=0.2
     )
+
+    F_c = LineFactory.create(
+        "f_c",
+        name="FcLine1",
+        domain=(-15, 15),
+        x0=0.0, width=0.02,
+        A=350.0,
+        q=0.023,
+        c=0.0,
+        weight=1.0
+    )
     assert isinstance(L, LorentzianLine)
+    assert isinstance(F_c, Line)
+
+    F_I = LineFactory.create(
+        "f_I",
+        name="FILine1",
+        domain=(-15, 15),
+        x0=0.0, width=0.02,
+        A=350.0,
+        q=0.023,
+        c=0.0,
+        weight=1.0,
+        kappa=0.01
+    )
+    assert isinstance(L, LorentzianLine)
+    assert isinstance(F_c, Line)
+    assert not isinstance(F_I, F_cLine)
 
 #------------------------------------------------------------------------------
 
@@ -121,6 +192,39 @@ def test_export_load():
 
     L3 = LorentzianLine.load_from_dict(**L2.export_to_dict())
 
+    F_c1 = LineFactory.create(
+        "f_c",
+        name="FcLine1",
+        domain=(-15, 15),
+        x0=0.0, width=0.02,
+        A=350.0,
+        q=0.023,
+        c=0.0,
+        weight=1.0
+    )
+    F_c1.export_to_jsonfile(f"{testdir}/resources/test_export_load_F_c_file.json")
+    F_c2 = F_cLine.load_from_jsonfile(f"{testdir}/resources/test_export_load_F_c_file.json")
+    assert F_c1.line_params["width"] == F_c2.line_params["width"]
+    F_c3 = F_cLine.load_from_dict(**F_c2.export_to_dict())
+    assert min(F_c3.domain) == min(F_c1.domain)
+
+    F_I1 = LineFactory.create(
+        "f_I",
+        name="FILine1",
+        domain=(-15, 15),
+        x0=0.0, width=0.02,
+        A=350.0,
+        q=0.023,
+        c=0.0,
+        weight=1.0,
+        kappa=0.01
+    )
+    F_I1.export_to_jsonfile(f"{testdir}/resources/test_export_load_F_I_file.json")
+    F_I2 = F_ILine.load_from_jsonfile(f"{testdir}/resources/test_export_load_F_I_file.json")
+    assert F_I1.line_params["width"] == F_I2.line_params["width"]
+    F_I3 = F_ILine.load_from_dict(**F_I2.export_to_dict())
+    assert min(F_I3.domain) == min(F_I1.domain)
+
 #------------------------------------------------------------------------------
 
 def test_get_param_names():
@@ -131,15 +235,15 @@ def test_get_param_names():
         width=0.4,
         c=0.2
     )
-    L2 = LorentzianLine(
-        name="Lorentzian",
+    F_c1 = F_cLine(
+        name="Fc1",
         domain=(-5.0, 5.0),
         x0=-0.0,
         width=0.4,
         c=0.2
     )
     print(L1.get_param_names())
-    print(L2.get_param_names())
+    print(F_c1.get_param_names())
 
 #------------------------------------------------------------------------------
 
@@ -242,9 +346,11 @@ def test_get_adaptive_integration_grid():
 #------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-#    test_Lorentzian_normalization()
+#    test_Lines()
+#    test_normalization()
+    test_export_load()
 #    test_get_param_names()
 #    test_update_line_params()
 #    test_get_peak_domain()
 #    test_get_peak_domain_strategy()
-    test_get_adaptive_integration_grid()
+#    test_get_adaptive_integration_grid()

@@ -83,7 +83,8 @@ def fqe_I(e, e_c, A, q, kappa):
     """
     Analytical expression for the dynamical correlation function
     of an isotropic ferromagnet in first order in
-    epsilon = 6 - d dimensions introduced by Iro.
+    epsilon = 6 - d dimensions introduced by Iro [1].
+    Valid for T > Tc.
 
     Parameter
     ---------
@@ -105,6 +106,9 @@ def fqe_I(e, e_c, A, q, kappa):
     fqe             :   float
         spectral shape function F(q, energy)
 
+    References
+    ----------
+    [1] H. Iro, J. Magn. Magn. Mater. 73, 175 (1988)
     """
     return 1 / np.pi / e_c * np.real(1.0 / (-1j * (e/e_c) + 1/(capital_z(q/kappa) * capital_pi1(q/kappa, capital_w(q, e, A)))))
 
@@ -165,3 +169,38 @@ def capital_w(q, energy, A):
     """
 
     return energy * capital_z(np.inf) / A / q**2.5
+
+#------------------------------------------------------------------------------
+
+def fqe_c(e, e_c, A, q):
+    """
+    Spectral shape function by Folk and Iro [1] valid at T = Tc.
+    Based on renormalization-group approach by Dohm [2] for isotropic
+    ferromagnets.
+
+    Parameter
+    ---------
+    e               :   float, ndarray
+        running variable, energy transfer [meV]
+    e_c        :   float
+        analogon to the linewidth in a Lorentzian spectral shape function
+        Has to given in the same unit as energy variable 'e'.
+    A               :   float
+        proportionality factor for linewidth calculation in gamma = A * q**2.5
+        [A] = meV angstroem**(5/2) | A(nickel) = 350 meV angstroem**(5/2)
+    q               :   float
+        momentum transfer [1/angstroem]
+
+    Return
+    ------
+    fqe             :   float
+        spectral shape function F(q, energy)
+
+    References
+    ----------
+    [1] R. Folk and H. Iro, Phys. Rev. B 32, 1880 (1985)
+    [2] V. Dohm, Solid State Commun. 20, 657 (1976)
+    """
+    a     = 0.46
+    alpha = 0.78
+    return np.real(1.0/(1j * (e/e_c) + alpha * (1 + 1j * (a/alpha) * (e/e_c))**-0.6)) / (np.pi * A * q**2.5)

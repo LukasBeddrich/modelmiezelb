@@ -7,7 +7,7 @@ import numpy as np
 from types import MethodType
 from math import isclose
 from inspect import getfullargspec
-from .utils.lineshape_functions import lorentzian, lorentzian_cdf
+from .utils.lineshape_functions import lorentzian, lorentzian_cdf, fqe_c, fqe_I
 from .utils.util import bose_factor
 
 ###############################################################################
@@ -340,6 +340,256 @@ class LorentzianLine(Line):
             **self.line_params
         )
         export_dict.update(dict(specifier="lorentzian"))
+        with open(json_file, "w") as jsonfile:
+            json.dump(export_dict, jsonfile)
+        return None
+
+###############################################################################
+###############################################################################
+###############################################################################
+
+@LineFactory.register('f_c')
+class F_cLine(Line):
+    """
+
+    """
+
+    _required_params = ("x0", "width", "A", "q", "c", "weight")
+    INTEGRATION_WIDTH_SCALE = 5.0
+
+    @staticmethod
+    def calc(var, x0, width, A, q, **kwargs):
+        """
+        Spectral shape function by Folk and Iro [1] valid at T = Tc.
+        Based on renormalization-group approach by Dohm [2] for isotropic
+        ferromagnets.
+
+        Parameter
+        ---------
+        var             :   float, ndarray
+            running variable, energy transfer [meV]
+        x0              :   float
+            !!! NOT NATIVE TO THEORY !!!
+            shift, BY CONSTRUCTION in energy position
+        width           :   float
+            analogon to the linewidth in a Lorentzian spectral shape function
+            Has to given in the same unit as energy variable 'e'.
+        A               :   float
+            proportionality factor for linewidth calculation in gamma = A * q**2.5
+            [A] = meV angstroem**(5/2) | A(nickel) = 350 meV angstroem**(5/2)
+        q               :   float
+            momentum transfer [1/angstroem]
+
+        Return
+        ------
+        fqe             :   float
+            spectral shape function F(q, energy)
+
+        References
+        ----------
+        [1] R. Folk and H. Iro, Phys. Rev. B 32, 1880 (1985)
+        [2] V. Dohm, Solid State Commun. 20, 657 (1976)
+        """
+        return fqe_c((var - x0), width, A, q)
+
+#------------------------------------------------------------------------------
+
+    def integrate(self):
+        """
+        Integrate numerically over its domain
+
+        Returns
+        -------
+        N   :   float
+            Integration value
+        """
+        x = np.linspace(min(self.domain), max(self.domain), 10000)
+        y = self.calc(x, **self.line_params)
+        return np.trapz(y, x)
+
+#------------------------------------------------------------------------------
+
+    def normalize(self):
+        """
+        Calculates normalization factor of a Lorentzian Line for its domain
+
+        Returns
+        -------
+        n   :   float
+            Normalization factor 1 / N
+        """
+        return 1.0 / self.integrate()
+
+#------------------------------------------------------------------------------
+
+    def export_to_dict(self):
+        """
+        Returns a dictionary, which can be used to create
+        a new instance of the same class via the LineFactory or
+        the cls.load_from_dict method as alternate constructor.
+
+        Returns
+        -------
+            :   dict
+            dictionary of the contents of the Line object.
+        """
+        export_dict = dict(
+            name=self.name,
+            domain=self.domain,
+            **self.line_params
+        )
+        export_dict.update(dict(specifier="f_c"))
+        return export_dict
+
+#------------------------------------------------------------------------------
+
+    def export_to_jsonfile(self, json_file):
+        """
+        Saves a JSON-file, which can be used to create
+        a new instance of the same class via the 
+        cls.load_from_jsonfile method as alternate constructor.
+
+        Parameters
+        ----------
+        json_file   :   str
+            path specifying the JSON file for saving the Line object.
+
+        Returns
+        -------
+            :   NoneType
+        """
+        export_dict = dict(
+            name=self.name,
+            domain=self.domain,
+            **self.line_params
+        )
+        export_dict.update(dict(specifier="f_c"))
+        with open(json_file, "w") as jsonfile:
+            json.dump(export_dict, jsonfile)
+        return None
+
+###############################################################################
+###############################################################################
+###############################################################################
+
+@LineFactory.register('f_I')
+class F_ILine(Line):
+    """
+
+    """
+
+    _required_params = ("x0", "width", "A", "q", "kappa", "c", "weight")
+    INTEGRATION_WIDTH_SCALE = 5.0
+
+    @staticmethod
+    def calc(var, x0, width, A, q, kappa, **kwargs):
+        """
+        Analytical expression for the dynamical correlation function
+        of an isotropic ferromagnet in first order in
+        epsilon = 6 - d dimensions introduced by Iro [1].
+        Valid for T > Tc.
+
+        Parameter
+        ---------
+        var             :   float, ndarray
+            running variable, energy transfer [meV]
+        x0              :   float
+            !!! NOT NATIVE TO THEORY !!!
+            shift, BY CONSTRUCTION, in energy position
+        width           :   float
+            analogon to the linewidth in a Lorentzian spectral shape function
+            Has to given in the same unit as energy variable 'e'.
+        A               :   float
+            proportionality factor for linewidth calculation in gamma = A * q**2.5
+            [A] = meV angstroem**(5/2) | A(nickel) = 350 meV angstroem**(5/2)
+        q               :   float
+            momentum transfer [1/angstroem]
+        kappa           :   float
+            inverse (mag.) correlation length [angstroem]
+
+        Return
+        ------
+        fqI             :   float
+            spectral shape function F(q, energy)
+
+        References
+        ----------
+        [1] H. Iro, J. Magn. Magn. Mater. 73, 175 (1988)
+        """
+        return fqe_I((var - x0), width, A, q, kappa)
+
+#------------------------------------------------------------------------------
+
+    def integrate(self):
+        """
+        Integrate numerically over its domain
+
+        Returns
+        -------
+        N   :   float
+            Integration value
+        """
+        x = np.linspace(min(self.domain), max(self.domain), 10000)
+        y = self.calc(x, **self.line_params)
+        return np.trapz(y, x)
+
+#------------------------------------------------------------------------------
+
+    def normalize(self):
+        """
+        Calculates normalization factor of a Lorentzian Line for its domain
+
+        Returns
+        -------
+        n   :   float
+            Normalization factor 1 / N
+        """
+        return 1.0 / self.integrate()
+
+#------------------------------------------------------------------------------
+
+    def export_to_dict(self):
+        """
+        Returns a dictionary, which can be used to create
+        a new instance of the same class via the LineFactory or
+        the cls.load_from_dict method as alternate constructor.
+
+        Returns
+        -------
+            :   dict
+            dictionary of the contents of the Line object.
+        """
+        export_dict = dict(
+            name=self.name,
+            domain=self.domain,
+            **self.line_params
+        )
+        export_dict.update(dict(specifier="f_I"))
+        return export_dict
+
+#------------------------------------------------------------------------------
+
+    def export_to_jsonfile(self, json_file):
+        """
+        Saves a JSON-file, which can be used to create
+        a new instance of the same class via the 
+        cls.load_from_jsonfile method as alternate constructor.
+
+        Parameters
+        ----------
+        json_file   :   str
+            path specifying the JSON file for saving the Line object.
+
+        Returns
+        -------
+            :   NoneType
+        """
+        export_dict = dict(
+            name=self.name,
+            domain=self.domain,
+            **self.line_params
+        )
+        export_dict.update(dict(specifier="f_I"))
         with open(json_file, "w") as jsonfile:
             json.dump(export_dict, jsonfile)
         return None
