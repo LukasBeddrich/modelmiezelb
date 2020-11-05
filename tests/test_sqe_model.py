@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 ###############################################################################
 from modelmiezelb.sqe_model import SqE, SqE_from_arg, UPPER_INTEGRATION_LIMIT
-from modelmiezelb.lineshape import Line, LorentzianLine
+from modelmiezelb.lineshape import Line, LorentzianLine, F_ILine
 from modelmiezelb.utils.util import energy_from_lambda
 ###############################################################################
 from pprint import pprint
@@ -41,6 +41,17 @@ def test_sqe_normalization():
     print(f"Integration value beyond domain from -15.0 to 20.0: {valover:.5f} +- {errover:.5f}")
 #    print(f"Normalized Sqe area: {val*n}")
 
+    # - - - - - - - - - - - - - - - - - - - -
+
+    L3 =  F_ILine("F_I1", (-energy_from_lambda(6.0), 15), x0=-0.1, width=0.008, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
+    L4 = LorentzianLine("Lorentzian1", (-energy_from_lambda(6.0), 15), x0=-0.3, width=0.008, c=0.0, weight=1)
+    sqecombined = SqE(lines=(L3, L4), lam=6.0, dlam=0.12, lSD=3.43, T=628.0)
+    valdom, errdom = quad(sqecombined, *new_domain)
+    print(f"Integration value over domain from {new_domain[0]:.5f} to {UPPER_INTEGRATION_LIMIT}: {valdom:.5f} +- {errdom:.5f}")#"   |   normalization factor: {n:.5f}")
+    sqecombined.update_domain((-5, 5))
+    valover, errover = quad(sqecombined, -2, 2)
+    print(f"Integration value beyond domain from -2.0 to 2.0: {valover:.5f} +- {errover:.5f}")
+
 #------------------------------------------------------------------------------
 
 def test_sqe_arg():
@@ -51,8 +62,9 @@ def test_sqe_arg():
 def test_export_load():
     # We need some lines
     L1, L2 = we_need_some_Lines()
+    L3 =   F_ILine("F_I1", (-energy_from_lambda(6.0), 15), x0=-0.1, width=0.008, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE(lines=(L1, L2, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     new_domain = (-1 * energy_from_lambda(6.0), UPPER_INTEGRATION_LIMIT)
     sqe.update_domain(new_domain)
 
@@ -76,14 +88,16 @@ def test_export_load():
 def test_update_params():
     # We need some lines
     L1, L2 = we_need_some_Lines()
+    L3 =   F_ILine("FI1", (-energy_from_lambda(6.0), 15), x0=-0.1, width=0.008, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE(lines=(L1, L2, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     pprint(sqe.export_to_dict())
     tdict = dict(
-#        T=30,
+        T=628.0,
 #        lam=8.0,
         x0_Lorentzian2=-0.5,
-        weight_Lorentzian1=5
+        weight_Lorentzian1=5,
+        kappa_FI1=0.065
     )
     sqe.update_params(**tdict)
     pprint(sqe.export_to_dict())
@@ -120,6 +134,6 @@ if __name__ == "__main__":
 #    test_sqe_normalization()
 #    test_sqe_arg()
 #    test_export_load()
-#    test_update_params()
-    test_get_peak_domain()
+    test_update_params()
+#    test_get_peak_domain()
 #    test_get_adaptive_integration_grid()

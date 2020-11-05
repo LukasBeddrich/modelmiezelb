@@ -243,7 +243,7 @@ class JSONLoader(Loader):
     
         for k in loaded_data:
             if k == "filename":
-                assert filename == loaded_data[k]
+                pass
             elif k == "foilnum":
                 foilnum = loaded_data[k]
             elif k == "arcnum":

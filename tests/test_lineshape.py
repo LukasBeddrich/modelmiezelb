@@ -104,21 +104,6 @@ def test_normalization():
 
 #------------------------------------------------------------------------------
 
-def test_domainenforcement_visually():
-
-    Lorentzian_short = LorentzianLine("Lorentzian_short", (-energy_from_lambda(6.0 * 0.88), 15), x0=-0.3, width=0.5, c=0.2)
-    Lorentzian_mid = LorentzianLine("Lorentzian_mid", (-energy_from_lambda(6.0), 15), x0=-0.3, width=0.5, c=0.2)
-    Lorentzian_long = LorentzianLine("Lorentzian_long", (-energy_from_lambda(6.0 * 1.12), 15), x0=-0.3, width=0.5, c=0.2)
-
-    # e = np.linspace(-10.0, 20.0, 1201)
-
-    # plt.plot(e, Lorentzian_short(e))
-    # plt.plot(e, Lorentzian_mid(e), ls="--", lw=2.0)
-    # plt.plot(e, Lorentzian_long(e), ls="dotted", lw=4.0)
-    # plt.show()
-
-#------------------------------------------------------------------------------
-
 def test_domainenforcement():
     Lorentzian = LorentzianLine("Lorentzian1", (-5., 5), x0=-0.3, width=0.5, c=0.2)
     F_c = F_cLine("FcLine1", (-15, 15), x0=0.0, width=0.02, A=350.0, q=0.023, c=0.0, weight=1.0)
@@ -342,15 +327,36 @@ def test_get_adaptive_integration_grid():
     print(inelstrat.get_peak_domain(Lwide))
     print(inelstrat.get_adaptive_integration_grid(Lwide, 5))
 
+#------------------------------------------------------------------------------
+
+def visualize_Lines():
+
+    Lorentzian = LorentzianLine("Lorentzian1", (-energy_from_lambda(6.0), 15), x0=-0.3, width=0.5, c=0.0)
+    F_c = F_cLine("F_c1", (-energy_from_lambda(6.0), 15), x0=-0.3, width=0.5, A=350.0, q=0.02, c=0.0, weight=1)
+    F_I = F_ILine("F_I1", (-energy_from_lambda(6.0), 15), x0=-0.3, width=0.008, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
+    print(F_I.integrate())
+    F_I2 = F_ILine("F_I2", (-energy_from_lambda(6.0), 15), x0=-0.3, width=0.1, A=367.0, q=0.124, kappa=0.065, c=0.0, weight=1)
+    print(F_I2.integrate())
+
+    e = np.linspace(-0.5, 0.0, 1201)
+
+    plt.plot(e, Lorentzian(e))
+    plt.plot(e, F_c(e) * F_c.normalize(), ls="--", lw=2.0)
+    plt.plot(e, F_I(e), ls="dotted", lw=4.0)
+    plt.plot(e, F_I2(e), ls="-.", lw=1.0)
+    plt.show()
 
 #------------------------------------------------------------------------------
 
 if __name__ == "__main__":
 #    test_Lines()
 #    test_normalization()
-    test_export_load()
+#    test_export_load()
 #    test_get_param_names()
 #    test_update_line_params()
 #    test_get_peak_domain()
 #    test_get_peak_domain_strategy()
 #    test_get_adaptive_integration_grid()
+    visualize_Lines()
+    print(F_cLine._required_params)
+    print(F_ILine._required_params)

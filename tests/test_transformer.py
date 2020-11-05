@@ -5,7 +5,7 @@ from numpy import linspace, logspace, tile, trapz, all, isclose, abs
 from pprint import pprint
 ###############################################################################
 from modelmiezelb.correction import CorrectionFactor, DetectorEfficiencyCorrectionFactor, EnergyCutOffCorrectionFactor
-from modelmiezelb.lineshape import LorentzianLine
+from modelmiezelb.lineshape import LorentzianLine, F_ILine
 from modelmiezelb.sqe_model import SqE, SqE_from_arg
 from modelmiezelb.transformer import SqtTransformer
 ###############################################################################
@@ -21,12 +21,13 @@ def test_transformer_init():
     # We need some lines
     L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
     L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.0, weight=1)
+    L3 =   F_ILine("FI1", (-energy_from_lambda(6.0), 15), x0=-0.1, width=0.008, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
     # Contruct a SqE model
     sqe1 = SqE(lines=(L2,), lam=6.0, dlam=0.12, lSD=3.43, T=20)
-    SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe2 = SqE(lines=(L1, L2, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
 
     ### Instantiate a transformer
-    SqtTransformer(sqe1, nlam=20, ne=10000)
+    SqtTransformer(sqe2, nlam=20, ne=10000)
 
 #------------------------------------------------------------------------------
 
@@ -34,8 +35,9 @@ def test_transformer_basics():
     ### Creating a SqE model for transformation
     # We need some lines
     L1 = LorentzianLine(name="Lorentzian1", domain=(-15.0, 15.0), x0=-1.0, width=0.4, c=0.0, weight=3)
+    L3 =   F_ILine("FI1", (-energy_from_lambda(6.0), 15), x0=-0.1, width=0.008, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
     # Contruct a SqE model
-    sqe1 = SqE(lines=(L1,), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe1 = SqE(lines=(L1, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
 
     ### Instantiate a transformer
     sqt1 = SqtTransformer(
@@ -163,8 +165,9 @@ def test_export_load():
     # We need some lines
     L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
     L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.0, weight=1)
+    L3 =   F_ILine("FI1", (-energy_from_lambda(6.0), 15), x0=-0.1, width=0.008, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE(lines=(L1, L2, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     # Add the detector efficiency correction
     decf = DetectorEfficiencyCorrectionFactor(sqe, ne=10000, nlam=20)
     # Add the energycutoff correction
@@ -196,6 +199,7 @@ def test_update_params():
     # We need some lines
     L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
     L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.0, weight=1)
+    L3 = F_ILine("FI1", (-energy_from_lambda(6.0), 15), x0=-0.1, width=0.008, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
     # Contruct a SqE model
     sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     # Add the detector efficiency correction
@@ -214,6 +218,7 @@ def test_update_params():
         width_Lorentzian2=0.025,
         weight_Lorentzian1=5,
         nlam=55,
+        kappa_FI1=1.0,
         some_wired_param=True
     )
     sqt.update_params(**tdict)

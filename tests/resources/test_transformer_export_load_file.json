@@ -41,6 +41,21 @@
                     "c": 0.0,
                     "weight": 1,
                     "specifier": "lorentzian"
+                },
+                "FI1": {
+                    "name": "FI1",
+                    "domain": [
+                        -2.272339235718374,
+                        15
+                    ],
+                    "x0": -0.1,
+                    "width": 0.008,
+                    "A": 350.0,
+                    "q": 0.02,
+                    "kappa": 0.01,
+                    "c": 0.0,
+                    "weight": 1,
+                    "specifier": "f_I"
                 }
             }
         },
@@ -80,6 +95,21 @@
                     "c": 0.0,
                     "weight": 1,
                     "specifier": "lorentzian"
+                },
+                "FI1": {
+                    "name": "FI1",
+                    "domain": [
+                        -2.272339235718374,
+                        15
+                    ],
+                    "x0": -0.1,
+                    "width": 0.008,
+                    "A": 350.0,
+                    "q": 0.02,
+                    "kappa": 0.01,
+                    "c": 0.0,
+                    "weight": 1,
+                    "specifier": "f_I"
                 }
             }
         }
@@ -114,6 +144,21 @@
             "c": 0.0,
             "weight": 1,
             "specifier": "lorentzian"
+        },
+        "FI1": {
+            "name": "FI1",
+            "domain": [
+                -2.272339235718374,
+                15
+            ],
+            "x0": -0.1,
+            "width": 0.008,
+            "A": 350.0,
+            "q": 0.02,
+            "kappa": 0.01,
+            "c": 0.0,
+            "weight": 1,
+            "specifier": "f_I"
         }
     }
 }
