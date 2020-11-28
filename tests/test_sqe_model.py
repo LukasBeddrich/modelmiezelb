@@ -13,7 +13,7 @@ testdir = os.path.dirname(os.path.abspath(__file__))
 
 def we_need_some_Lines():
     L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
-    L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.02, weight=1)
+    L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.1, c=0.02, weight=1)
     return L1, L2
 
 #------------------------------------------------------------------------------
@@ -118,15 +118,21 @@ def test_get_peak_domain():
 
 def test_get_adaptive_integration_grid():
     # We need some lines
-    L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.2, c=0.0, weight=2)
-    L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-0.5, width=0.07, c=0.0, weight=1)
+    L1, L2 = we_need_some_Lines()
+    L3 = F_ILine("FI1", (-energy_from_lambda(6.0), 15), x0=-0.1, width=0.008, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
+
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE(lines=(L1, L2, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
 
 
     print(sqe.quasielastic.get_adaptive_integration_grid(L1, 10))
     print(sqe.inelastic.get_adaptive_integration_grid(L2, 5))
-    print(sqe.get_adaptive_integration_grid(npeak=5, nrest=10))
+    print(sqe.get_adaptive_integration_grid(ne=5, nlam=3).shape)
+
+    # # visualize
+    # plt.hist(sqe.get_adaptive_integration_grid(ne=50, nlam=1)[0], bins=20, range=(-3.0, 3))
+    # plt.plot(sqe.get_adaptive_integration_grid(ne=50, nlam=1)[0], sqe(sqe.get_adaptive_integration_grid(ne=50, nlam=1)[0]), color="limegreen")
+    # plt.show()
 
 #------------------------------------------------------------------------------
 
@@ -134,6 +140,6 @@ if __name__ == "__main__":
 #    test_sqe_normalization()
 #    test_sqe_arg()
 #    test_export_load()
-    test_update_params()
+#    test_update_params()
 #    test_get_peak_domain()
-#    test_get_adaptive_integration_grid()
+    test_get_adaptive_integration_grid()

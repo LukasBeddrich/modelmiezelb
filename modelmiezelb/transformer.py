@@ -2,7 +2,7 @@
 
 """
 import json
-from numpy import tile, linspace, empty, cos, trapz, meshgrid, ones, pi, sqrt
+from numpy import tile, linspace, empty, cos, trapz, meshgrid, ones, pi, sqrt, where, atleast_2d
 from modelmiezelb.utils.util import energy_from_lambda, MIEZE_phase, triangle_distribution, detector_efficiency
 from modelmiezelb.sqe_model import UPPER_INTEGRATION_LIMIT, SqE
 from modelmiezelb.correction import CorrectionFactor
@@ -58,7 +58,7 @@ class SqtTransformer(Transformer):
 
     """
 
-    _required_params = ("ne", "nlam", "lSD")
+    _required_params = ("ne", "nlam", "lSD", "integ_mode")
 
     def __init__(self, sqemodel, corrections=(), **params):
         """
@@ -76,7 +76,7 @@ class SqtTransformer(Transformer):
         self.sqemodel = sqemodel
         self.corrections = corrections
 
-        self.params = dict(ne=15000, nlam=50, lSD=None)
+        self.params = dict(ne=15000, nlam=50, lSD=None, integ_mode="adaptive")
         self.params.update(params)
 
 #------------------------------------------------------------------------------
@@ -103,12 +103,24 @@ class SqtTransformer(Transformer):
         dlam = self.sqemodel.model_params["dlam"]
 
         l = linspace(1-dlam*1.01, 1+dlam*1.01, self.params["nlam"]) * lam
-        ll = tile(l,(self.params["ne"],1))
         a = -0.99999 * energy_from_lambda(l)
-        ee = linspace(a, UPPER_INTEGRATION_LIMIT, self.params["ne"])
+        # Selecting integration mode
+        if self.params["integ_mode"] == "adaptive":
+            ee = self.sqemodel.get_adaptive_integration_grid(
+                self.params["ne"],
+                self.params["nlam"]
+            )
+            ee = where(ee <= atleast_2d(a).T, atleast_2d(a).T, ee)
+
+        elif self.params["integ_mode"] == "linear":
+            ee = linspace(a, UPPER_INTEGRATION_LIMIT, self.params["ne"])
+
+        ne = ee.shape[0]
+        ll = tile(l,(ne, 1))
+#        return ee, ll
 
         ### Creating intgrand arrays
-        sqe = ones((self.params["ne"], self.params["nlam"]))
+        sqe = ones((ne, self.params["nlam"]))
         corrs = tile(sqe, (len(self.corrections), 1, 1))
 
         ### Filling integrand arrays

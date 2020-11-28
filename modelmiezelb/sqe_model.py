@@ -5,7 +5,7 @@
 import json
 import modelmiezelb.arg_inel_mieze_model as arg
 from math import isclose
-from numpy import union1d, linspace
+from numpy import union1d, linspace, tile
 from .utils.util import energy_from_lambda, bose_factor, wavelength_from_energy
 from .utils.helpers import get_key_for_grouping
 from .lineshape import InelasticCalcStrategy, QuasielasticCalcStrategy, LineFactory
@@ -77,20 +77,21 @@ class SqE:
 
 #------------------------------------------------------------------------------
 
-    def get_adaptive_integration_grid(self, npeak, nrest):
+    def get_adaptive_integration_grid(self, ne, nlam):
         """
 
         """
         # first grid is a coarse grid over entire domain
-        grids = [linspace(
-            energy_from_lambda(-0.9999 * self.model_params["lam"]),
-            UPPER_INTEGRATION_LIMIT,
-            nrest
-        )]
+        grids = []
         for line in self._lines:
-            grids.append(self.apply_grid_strategy(line, npeak))
+            grids.append(self.apply_grid_strategy(line, ne))
         # unites all individual grids to one.
-        return reduce(union1d, grids)
+        grid = reduce(union1d, grids)
+        # truncate to the lowest accepted neutron energy
+        grid = grid[grid > -0.9999 * energy_from_lambda(self.model_params["lam"] * (1 - self.model_params["dlam"]))]
+
+        grid = tile(grid, (nlam, 1))
+        return grid.T
 
 #------------------------------------------------------------------------------
 

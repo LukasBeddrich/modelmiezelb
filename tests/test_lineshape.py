@@ -292,40 +292,40 @@ def test_get_peak_domain_strategy():
 
 #------------------------------------------------------------------------------
 
-def test_get_adaptive_integration_grid():
-    quasistrat = QuasielasticCalcStrategy()
-    inelstrat = InelasticCalcStrategy(20.0)
-    Lwide = LorentzianLine(
-        name="Lwide",
-        domain=(-15.0, 15.0),
-        x0=-0.5,
-        width=0.4,
-        c=0.0
-    )
-    Lnarrow = LorentzianLine(
-        name="Lnarrow",
-        domain=(-15.0, 15.0),
-        x0=-0.5,
-        width=0.07,
-        c=0.0
-    )
-    Lquasi = LorentzianLine(
-        name="Lquasi",
-        domain=(-15.0, 15.0),
-        x0=0.0,
-        width=0.1,
-        c=0.0
-    )
+# def test_get_adaptive_integration_grid():
+#     quasistrat = QuasielasticCalcStrategy()
+#     inelstrat = InelasticCalcStrategy(20.0)
+#     Lwide = LorentzianLine(
+#         name="Lwide",
+#         domain=(-15.0, 15.0),
+#         x0=-0.5,
+#         width=0.4,
+#         c=0.0
+#     )
+#     Lnarrow = LorentzianLine(
+#         name="Lnarrow",
+#         domain=(-15.0, 15.0),
+#         x0=-0.5,
+#         width=0.07,
+#         c=0.0
+#     )
+#     Lquasi = LorentzianLine(
+#         name="Lquasi",
+#         domain=(-15.0, 15.0),
+#         x0=0.0,
+#         width=0.1,
+#         c=0.0
+#     )
 
-    print("Quasielastic domain retrieval.")
-    print(quasistrat.get_peak_domain(Lquasi))
-    print(quasistrat.get_adaptive_integration_grid(Lquasi, 5))
+#     print("Quasielastic domain retrieval.")
+#     print(quasistrat.get_peak_domain(Lquasi))
+#     print(quasistrat.get_adaptive_integration_grid(Lquasi, 5))
 
-    print("Inelelastic domain retrieval.")
-    print(inelstrat.get_peak_domain(Lnarrow))
-    print(inelstrat.get_adaptive_integration_grid(Lnarrow, 5))
-    print(inelstrat.get_peak_domain(Lwide))
-    print(inelstrat.get_adaptive_integration_grid(Lwide, 5))
+#     print("Inelelastic domain retrieval.")
+#     print(inelstrat.get_peak_domain(Lnarrow))
+#     print(inelstrat.get_adaptive_integration_grid(Lnarrow, 5))
+#     print(inelstrat.get_peak_domain(Lwide))
+#     print(inelstrat.get_adaptive_integration_grid(Lwide, 5))
 
 #------------------------------------------------------------------------------
 
@@ -348,6 +348,38 @@ def visualize_Lines():
 
 #------------------------------------------------------------------------------
 
+def test_get_adaptive_integration_grid():
+    ### Lines
+    LL1 = LorentzianLine("LL1", (-energy_from_lambda(6.0), 15), x0=0.048, width=0.04, c=0.0, weight=0.0)
+    F_c = F_cLine("F_c1", (-energy_from_lambda(6.0), 15), x0=0.0, width=0.02, A=350.0, q=0.02, c=0.0, weight=1)
+    F_I = F_ILine("F_I1", (-energy_from_lambda(6.0), 15), x0=-0.02, width=0.008, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
+
+    ### CalcStrategy
+    inel = InelasticCalcStrategy(610)
+    quasi = QuasielasticCalcStrategy()
+
+    ### Vis
+    ne = 500
+    plt.plot(LL1.get_adaptive_integration_grid(ne), [0] * (ne * LL1.INTEGRATION_POINT_NUMBER_FACTOR - 1), ls="", color="C0", marker=".", mec="None", label=f"Line {LL1.name}")
+    plt.plot(F_c.get_adaptive_integration_grid(ne), [1] * (ne * F_c.INTEGRATION_POINT_NUMBER_FACTOR - 1), ls="", color="C1", marker=".", mec="None", label=f"Line {F_c.name}")
+    plt.plot(F_I.get_adaptive_integration_grid(ne), [2] * (ne * F_I.INTEGRATION_POINT_NUMBER_FACTOR - 1), ls="", color="C2", marker=".", mec="None", label=f"Line {F_I.name}")
+    plt.plot(inel.get_adaptive_integration_grid(LL1, ne), [0.2] * (ne * LL1.INTEGRATION_POINT_NUMBER_FACTOR - 2), ls="", color="C0", marker="2", label=f"Calcstrat {LL1.name}")
+    plt.plot(quasi.get_adaptive_integration_grid(F_c, ne), [1.2] * (ne * F_c.INTEGRATION_POINT_NUMBER_FACTOR - 2), ls="", color="C1", marker="2", label=f"Calcstrat {F_c.name}")
+    plt.plot(inel.get_adaptive_integration_grid(F_I, ne), [2.2] * (ne * F_I.INTEGRATION_POINT_NUMBER_FACTOR - 2), ls="", color="C2", marker="2", label=f"Calcstrat {F_I.name}")
+    plt.legend()
+    plt.figure()
+    plt.hist(inel.get_adaptive_integration_grid(LL1, ne), range=(-0.1, 0.1), bins=20, label="LL1")
+    plt.legend()
+    plt.figure()
+    plt.hist(inel.get_adaptive_integration_grid(F_c, ne), range=(-0.1, 0.1), bins=20, label="F_c")
+    plt.legend()
+    plt.figure()
+    plt.hist(inel.get_adaptive_integration_grid(F_I, ne), range=(-0.1, 0.1), bins=20, label="F_I")
+    plt.legend()
+    plt.show()
+
+#------------------------------------------------------------------------------
+
 if __name__ == "__main__":
 #    test_Lines()
 #    test_normalization()
@@ -356,7 +388,6 @@ if __name__ == "__main__":
 #    test_update_line_params()
 #    test_get_peak_domain()
 #    test_get_peak_domain_strategy()
-#    test_get_adaptive_integration_grid()
-    visualize_Lines()
-    print(F_cLine._required_params)
-    print(F_ILine._required_params)
+    test_get_adaptive_integration_grid()
+#    visualize_Lines()
+    

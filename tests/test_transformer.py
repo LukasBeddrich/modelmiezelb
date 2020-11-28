@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 import os
 ###############################################################################
-from numpy import linspace, logspace, tile, trapz, all, isclose, abs
+from numpy import linspace, logspace, tile, trapz, all, isclose, abs, array
 from pprint import pprint
 ###############################################################################
 from modelmiezelb.correction import CorrectionFactor, DetectorEfficiencyCorrectionFactor, EnergyCutOffCorrectionFactor
-from modelmiezelb.lineshape import LorentzianLine, F_ILine
+from modelmiezelb.lineshape import LorentzianLine, F_ILine, F_cLine
 from modelmiezelb.sqe_model import SqE, SqE_from_arg
 from modelmiezelb.transformer import SqtTransformer
 ###############################################################################
@@ -201,7 +201,7 @@ def test_update_params():
     L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.0, weight=1)
     L3 = F_ILine("FI1", (-energy_from_lambda(6.0), 15), x0=-0.1, width=0.008, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE(lines=(L1, L2, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     # Add the detector efficiency correction
     decf = DetectorEfficiencyCorrectionFactor(sqe, ne=10000, nlam=20)
     # Add the energycutoff correction
@@ -227,10 +227,50 @@ def test_update_params():
 
 #------------------------------------------------------------------------------
 
+def test_adaptive_vs_linear():
+    L1 = LorentzianLine("LL1", (-energy_from_lambda(6.0), 15), x0=0.048, width=0.04, c=0.0, weight=0.0)
+    L2 = F_cLine("F_c1", (-energy_from_lambda(6.0), 15), x0=0.0, width=0.0001, A=350.0, q=0.02, c=0.0, weight=1)
+    L3 = F_ILine("F_I1", (-energy_from_lambda(6.0), 15), x0=-0.02, width=0.01, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
+    # Contruct a SqE model
+    sqe = SqE(lines=(L1, L2, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    # Add the detector efficiency correction
+    decf = DetectorEfficiencyCorrectionFactor(sqe, ne=100, nlam=20)
+
+    ### Instantiate a transformer
+    sqtadapt = SqtTransformer(sqe, corrections=(decf,), nlam=20, ne=100, lSD=3.43)
+    sqtlinear = SqtTransformer(sqe, corrections=(decf,), nlam=20, ne=100, lSD=3.43, inetg_mode="linear")
+
+    ### Values for transformation
+    taus = logspace(-6, -1, 101)
+    freqs = MIEZE_DeltaFreq_from_time(taus*1.0e-9, 3.43, 6.0)
+
+#    return sqtadapt(freqs[0]), sqtlinear(freqs[0])
+
+    ### perform transformation
+    from time import time
+    startt = time()
+    adaptvals = array([sqtadapt(freq) for freq in freqs])
+    intermedt = time()
+    linearvals = array([sqtlinear(freq) for freq in freqs])
+    stopt = time()
+
+    print(f"Adaptive integration took: {intermedt - startt:.1f}")
+    print(f"Linear integration took  : {stopt - intermedt:.1f}")
+
+    plt.plot(taus, adaptvals, marker=".", label="Adaptive")
+    plt.plot(taus, linearvals, marker=".", label="Linear")
+    plt.legend()
+    plt.show()
+
+
+#------------------------------------------------------------------------------
+
 if __name__ == "__main__":
 #    test_transformer_init()
 #    test_transformer_basics()
 #    test_transform_arg_model()
 #    test_manualtransform_arg_model()
 #    test_export_load()
-    test_update_params()
+#    test_update_params()
+#    (eead, llad), (eelin, lllin) = test_adaptive_vs_linear()
+    test_adaptive_vs_linear()

@@ -54,6 +54,9 @@ class Line:
     """
     # Absolute tolerance when a line is considered quasi- instead of inelastic
     QUASI_TO_INELASTIC_DISTINCTION_VALUE = 0.0001 # meV
+    INTEGRATION_WIDTH_SCALE = None
+    INTEGRATION_POINT_DENSITY_PARAMETER = None
+    INTEGRATION_POINT_NUMBER_FACTOR = None
     _required_params = ()
 
     def __init__(self, name, domain, **line_params):
@@ -88,6 +91,23 @@ class Line:
 #        self.check_params()
 #        var = self.within_domain(var)
         return self.calc(var, **self.line_params) * self.within_domain(var)
+
+#------------------------------------------------------------------------------
+
+    def get_adaptive_integration_grid(self, ne):
+        """
+
+        """
+        half_grid = np.geomspace(
+            1,
+            self.INTEGRATION_POINT_DENSITY_PARAMETER,
+            self.INTEGRATION_POINT_NUMBER_FACTOR * ne // 2
+        )
+        m = self.line_params["width"] * self.INTEGRATION_WIDTH_SCALE / (self.INTEGRATION_POINT_DENSITY_PARAMETER - 1)
+        t = self.line_params["x0"] - m
+
+        half_grid = m * half_grid + t
+        return np.concatenate((np.flip(-half_grid) + 2 * self.line_params["x0"], half_grid[1:]))
 
 #------------------------------------------------------------------------------
 
@@ -224,7 +244,9 @@ class LorentzianLine(Line):
     """
 
     _required_params = ("x0", "width", "c", "weight")
-    INTEGRATION_WIDTH_SCALE = 5.0
+    INTEGRATION_WIDTH_SCALE = 10000.0
+    INTEGRATION_POINT_DENSITY_PARAMETER = 6000
+    INTEGRATION_POINT_NUMBER_FACTOR = 2
 
     def normalize(self):
         """
@@ -355,7 +377,9 @@ class F_cLine(Line):
     """
 
     _required_params = ("x0", "width", "A", "q", "c", "weight")
-    INTEGRATION_WIDTH_SCALE = 5.0
+    INTEGRATION_WIDTH_SCALE = 10000.0
+    INTEGRATION_POINT_DENSITY_PARAMETER = 6000
+    INTEGRATION_POINT_NUMBER_FACTOR = 2
 
     @staticmethod
     def calc(var, x0, width, A, q, **kwargs):
@@ -479,7 +503,9 @@ class F_ILine(Line):
     """
 
     _required_params = ("x0", "width", "A", "q", "kappa", "c", "weight")
-    INTEGRATION_WIDTH_SCALE = 5.0
+    INTEGRATION_WIDTH_SCALE = 10000.0
+    INTEGRATION_POINT_DENSITY_PARAMETER = 6000
+    INTEGRATION_POINT_NUMBER_FACTOR = 3
 
     @staticmethod
     def calc(var, x0, width, A, q, kappa, **kwargs):
@@ -657,11 +683,12 @@ class QuasielasticCalcStrategy:
 
 #------------------------------------------------------------------------------
 
-    def get_adaptive_integration_grid(self, line, npeak=1000):
+    def get_adaptive_integration_grid(self, line, ne):
         """
 
         """
-        return np.linspace(*self.get_peak_domain(line), npeak, endpoint=False)
+        return line.get_adaptive_integration_grid(ne)[1:]
+#        return np.linspace(*self.get_peak_domain(line), npeak, endpoint=False)
 
 ###############################################################################
 ###############################################################################
@@ -751,12 +778,22 @@ class InelasticCalcStrategy:
 
 #------------------------------------------------------------------------------
 
-    def get_adaptive_integration_grid(self, line, npeak=1000):
+    def get_adaptive_integration_grid(self, line, ne):
         """
 
         """
-        d1, d2 = self.get_peak_domain(line)
-        if isinstance(d1, tuple):
-            return np.union1d(self._grid(d1, npeak), self._grid(d2, npeak))
-        elif isinstance(d1, float):
-            return self._grid((d1, d2), 2*npeak)
+        ne //= 2 # Factor 1/2 to get equal amount of points from
+                # inelastic and quasielastic lines.
+        # First peak grid
+        grid1 = line.get_adaptive_integration_grid(ne)
+        # Second peak grid
+        line_dict = line.export_to_dict()
+        line_dict["x0"] = -1.0 * line_dict["x0"]
+        grid2 = line.load_from_dict(**line_dict).get_adaptive_integration_grid(ne)
+        return np.concatenate((grid1, grid2))
+
+        # d1, d2 = self.get_peak_domain(line)
+        # if isinstance(d1, tuple):
+        #     return np.union1d(self._grid(d1, npeak), self._grid(d2, npeak))
+        # elif isinstance(d1, float):
+        #     return self._grid((d1, d2), 2*npeak)
