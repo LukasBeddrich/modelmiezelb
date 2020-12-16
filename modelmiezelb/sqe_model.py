@@ -79,7 +79,20 @@ class SqE:
 
     def get_adaptive_integration_grid(self, ne, nlam):
         """
+        Creates a 2D grid in energy (not yet: and wavelength) for MIEZE transform
+        integration points are focused around the peaks of the Line s
 
+        Parameters
+        ----------
+        ne      :   int
+            round about number of energy points
+        nlam    :   int
+            number of points in wavelength
+
+        Return
+        ------
+        ee      :   ndaray
+            2D array of energy integration points
         """
         # first grid is a coarse grid over entire domain
         grids = []
@@ -334,6 +347,39 @@ class SqE_from_arg:
             kappa=0.1,
             A=350.
         )
+
+#------------------------------------------------------------------------------
+
+    def get_adaptive_integration_grid(self, ne, nlam):
+        """
+        Mimiks SqE get_adaptive_integration_grid method
+
+        Parameters
+        ----------
+        ne      :   int
+            round about number of energy points
+        nlam    :   int
+            number of points in wavelength
+
+        Return
+        ------
+        ee      :   ndaray
+            2D array of energy integration points
+        """
+        from modelmiezelb.lineshape import F_ILine
+        line = F_ILine(
+            "FI1",
+            domain=(-15.0, 15.0),
+            x0=0.03,
+            width=0.02,
+            A=367.0,
+            q=0.015,
+            kappa=0.005,
+            c=0.0,
+            weight=1.0
+        )
+        sqe = SqE((line,), lam=6.0, dlam=0.12, lSD=3.43, T=610.0)
+        return sqe.get_adaptive_integration_grid(ne, nlam)
 
 ###############################################################################
 ###############################################################################

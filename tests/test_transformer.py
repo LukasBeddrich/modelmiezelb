@@ -237,11 +237,11 @@ def test_adaptive_vs_linear():
     decf = DetectorEfficiencyCorrectionFactor(sqe, ne=100, nlam=20)
 
     ### Instantiate a transformer
-    sqtadapt = SqtTransformer(sqe, corrections=(decf,), nlam=20, ne=100, lSD=3.43)
-    sqtlinear = SqtTransformer(sqe, corrections=(decf,), nlam=20, ne=100, lSD=3.43, inetg_mode="linear")
+    sqtadapt = SqtTransformer(sqe, corrections=(decf,), nlam=20, ne=200, lSD=3.43)
+    sqtlinear = SqtTransformer(sqe, corrections=(decf,), nlam=20, ne=577, lSD=3.43, integ_mode="linear")
 
     ### Values for transformation
-    taus = logspace(-6, -1, 101)
+    taus = logspace(-4, 1, 151)
     freqs = MIEZE_DeltaFreq_from_time(taus*1.0e-9, 3.43, 6.0)
 
 #    return sqtadapt(freqs[0]), sqtlinear(freqs[0])
@@ -257,10 +257,11 @@ def test_adaptive_vs_linear():
     print(f"Adaptive integration took: {intermedt - startt:.1f}")
     print(f"Linear integration took  : {stopt - intermedt:.1f}")
 
-    plt.plot(taus, adaptvals, marker=".", label="Adaptive")
-    plt.plot(taus, linearvals, marker=".", label="Linear")
-    plt.legend()
-    plt.show()
+    # plt.plot(taus, adaptvals, marker=".", label="Adaptive")
+    # plt.plot(taus, linearvals, marker=".", label="Linear")
+    # plt.xscale("log")
+    # plt.legend()
+    # plt.show()
 
 
 #------------------------------------------------------------------------------
@@ -273,4 +274,5 @@ if __name__ == "__main__":
 #    test_export_load()
 #    test_update_params()
 #    (eead, llad), (eelin, lllin) = test_adaptive_vs_linear()
+#    e_adaptive, ll_adaptive, ee_linear, ll_linear = test_adaptive_vs_linear()
     test_adaptive_vs_linear()

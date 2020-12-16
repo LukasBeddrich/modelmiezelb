@@ -358,25 +358,25 @@ def test_get_adaptive_integration_grid():
     inel = InelasticCalcStrategy(610)
     quasi = QuasielasticCalcStrategy()
 
-    ### Vis
-    ne = 500
-    plt.plot(LL1.get_adaptive_integration_grid(ne), [0] * (ne * LL1.INTEGRATION_POINT_NUMBER_FACTOR - 1), ls="", color="C0", marker=".", mec="None", label=f"Line {LL1.name}")
-    plt.plot(F_c.get_adaptive_integration_grid(ne), [1] * (ne * F_c.INTEGRATION_POINT_NUMBER_FACTOR - 1), ls="", color="C1", marker=".", mec="None", label=f"Line {F_c.name}")
-    plt.plot(F_I.get_adaptive_integration_grid(ne), [2] * (ne * F_I.INTEGRATION_POINT_NUMBER_FACTOR - 1), ls="", color="C2", marker=".", mec="None", label=f"Line {F_I.name}")
-    plt.plot(inel.get_adaptive_integration_grid(LL1, ne), [0.2] * (ne * LL1.INTEGRATION_POINT_NUMBER_FACTOR - 2), ls="", color="C0", marker="2", label=f"Calcstrat {LL1.name}")
-    plt.plot(quasi.get_adaptive_integration_grid(F_c, ne), [1.2] * (ne * F_c.INTEGRATION_POINT_NUMBER_FACTOR - 2), ls="", color="C1", marker="2", label=f"Calcstrat {F_c.name}")
-    plt.plot(inel.get_adaptive_integration_grid(F_I, ne), [2.2] * (ne * F_I.INTEGRATION_POINT_NUMBER_FACTOR - 2), ls="", color="C2", marker="2", label=f"Calcstrat {F_I.name}")
-    plt.legend()
-    plt.figure()
-    plt.hist(inel.get_adaptive_integration_grid(LL1, ne), range=(-0.1, 0.1), bins=20, label="LL1")
-    plt.legend()
-    plt.figure()
-    plt.hist(inel.get_adaptive_integration_grid(F_c, ne), range=(-0.1, 0.1), bins=20, label="F_c")
-    plt.legend()
-    plt.figure()
-    plt.hist(inel.get_adaptive_integration_grid(F_I, ne), range=(-0.1, 0.1), bins=20, label="F_I")
-    plt.legend()
-    plt.show()
+    # ### Vis
+    # ne = 500
+    # plt.plot(LL1.get_adaptive_integration_grid(ne), [0] * (ne * LL1.INTEGRATION_POINT_NUMBER_FACTOR - 1), ls="", color="C0", marker=".", mec="None", label=f"Line {LL1.name}")
+    # plt.plot(F_c.get_adaptive_integration_grid(ne), [1] * (ne * F_c.INTEGRATION_POINT_NUMBER_FACTOR - 1), ls="", color="C1", marker=".", mec="None", label=f"Line {F_c.name}")
+    # plt.plot(F_I.get_adaptive_integration_grid(ne), [2] * (ne * F_I.INTEGRATION_POINT_NUMBER_FACTOR - 1), ls="", color="C2", marker=".", mec="None", label=f"Line {F_I.name}")
+    # plt.plot(inel.get_adaptive_integration_grid(LL1, ne), [0.2] * (ne * LL1.INTEGRATION_POINT_NUMBER_FACTOR - 2), ls="", color="C0", marker="2", label=f"Calcstrat {LL1.name}")
+    # plt.plot(quasi.get_adaptive_integration_grid(F_c, ne), [1.2] * (ne * F_c.INTEGRATION_POINT_NUMBER_FACTOR - 2), ls="", color="C1", marker="2", label=f"Calcstrat {F_c.name}")
+    # plt.plot(inel.get_adaptive_integration_grid(F_I, ne), [2.2] * (ne * F_I.INTEGRATION_POINT_NUMBER_FACTOR - 2), ls="", color="C2", marker="2", label=f"Calcstrat {F_I.name}")
+    # plt.legend()
+    # plt.figure()
+    # plt.hist(inel.get_adaptive_integration_grid(LL1, ne), range=(-0.1, 0.1), bins=20, label="LL1")
+    # plt.legend()
+    # plt.figure()
+    # plt.hist(inel.get_adaptive_integration_grid(F_c, ne), range=(-0.1, 0.1), bins=20, label="F_c")
+    # plt.legend()
+    # plt.figure()
+    # plt.hist(inel.get_adaptive_integration_grid(F_I, ne), range=(-0.1, 0.1), bins=20, label="F_I")
+    # plt.legend()
+    # plt.show()
 
 #------------------------------------------------------------------------------
 

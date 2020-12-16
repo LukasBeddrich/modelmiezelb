@@ -2,7 +2,8 @@
     "params": {
         "ne": 10000,
         "nlam": 20,
-        "lSD": 3.43
+        "lSD": 3.43,
+        "integ_mode": "adaptive"
     },
     "corrections": [
         {

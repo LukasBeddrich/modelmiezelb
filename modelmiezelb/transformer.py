@@ -106,14 +106,18 @@ class SqtTransformer(Transformer):
         a = -0.99999 * energy_from_lambda(l)
         # Selecting integration mode
         if self.params["integ_mode"] == "adaptive":
+#            print("adaptive grid")
             ee = self.sqemodel.get_adaptive_integration_grid(
                 self.params["ne"],
                 self.params["nlam"]
             )
-            ee = where(ee <= atleast_2d(a).T, atleast_2d(a).T, ee)
+#            return ee
+            ee = where(ee <= atleast_2d(a), atleast_2d(a), ee)
 
         elif self.params["integ_mode"] == "linear":
+#            print("linear grid")
             ee = linspace(a, UPPER_INTEGRATION_LIMIT, self.params["ne"])
+#            return ee
 
         ne = ee.shape[0]
         ll = tile(l,(ne, 1))

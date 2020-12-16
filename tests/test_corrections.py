@@ -2,12 +2,12 @@ import matplotlib.pyplot as plt
 import modelmiezelb.arg_inel_mieze_model as arg
 import os
 ###############################################################################
-from numpy import linspace, tile, trapz, all, isclose, arange, ones
+from numpy import linspace, tile, trapz, all, isclose, arange, ones, atleast_2d, where
 from pprint import pprint
 from time import time
 ###############################################################################
 from modelmiezelb.correction import CorrectionFactor, DetectorEfficiencyCorrectionFactor, EnergyCutOffCorrectionFactor
-from modelmiezelb.lineshape import LorentzianLine
+from modelmiezelb.lineshape import LorentzianLine, F_cLine, F_ILine
 from modelmiezelb.sqe_model import SqE, UPPER_INTEGRATION_LIMIT
 ###############################################################################
 from modelmiezelb.utils.util import detector_efficiency, triangle_distribution, energy_from_lambda, energy_lambda_nrange
@@ -363,7 +363,55 @@ def test_update_params():
         nlam=55
     )
     decf.update_params(**tdict)
-    pprint(decf.export_to_dict())    
+    pprint(decf.export_to_dict())
+
+#------------------------------------------------------------------------------
+
+def test_adaptive_vs_linear():
+    # 
+    L1 = LorentzianLine("LL1", (-energy_from_lambda(6.0), 15), x0=0.048, width=0.04, c=0.0, weight=0.0)
+    L2 = F_cLine("F_c1", (-energy_from_lambda(6.0), 15), x0=0.0, width=0.0001, A=350.0, q=0.02, c=0.0, weight=1)
+    L3 = F_ILine("F_I1", (-energy_from_lambda(6.0), 15), x0=-0.02, width=0.01, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
+    # Contruct a SqE model
+    sqe = SqE(lines=(L1, L2, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    # Add the detector efficiency correction
+    decf = DetectorEfficiencyCorrectionFactor(sqe, ne=100, nlam=20)
+
+    ### Construct the adaptive integration grid
+    ne   = 100
+    nlam = 21
+    l = linspace(1 - sqe.model_params["dlam"], 1 + sqe.model_params["dlam"], nlam) * sqe.model_params["lam"]
+    a = -0.99999 * energy_from_lambda(l)
+
+    ee = sqe.get_adaptive_integration_grid(ne, nlam)
+    ee = where(ee <= atleast_2d(a), atleast_2d(a), ee)
+
+    ne = ee.shape[0]
+    ll = tile(l,(ne, 1))
+
+    print(f"ee: - Shape: {ee.shape}\n - ee[::50, {nlam//2}]: {ee[::50, nlam//2]}")
+    print(f"ll: - Shape: {ll.shape}\n - ll[::50, {nlam//2}]: {ll[::50, nlam//2]}")
+
+    ### Construct a standard linear integration grid
+    nelin   = 10000
+    nlamlin = 21
+    eelin, lllin = energy_lambda_nrange(15.0, 6.0, 0.12, nelin, nlamlin)
+
+    print(f"eelin: - Shape: {ee.shape}\n - ee[::{nelin//10}, {nlam//2}]: {eelin[::nelin//10, nlam//2]}")
+    print(f"lllin: - Shape: {ll.shape}\n - ll[::{nelin//10}, {nlam//2}]: {lllin[::nelin//10, nlam//2]}")
+
+    ### perform correction calculation
+    from time import time
+    startt = time()
+    adaptcorr = decf.calc(ee, ll)
+    intermedt = time()
+    lincorr = decf.calc(eelin, lllin)
+    stopt = time()
+
+    print(f"Adaptive integration took: {intermedt - startt:.6f}")
+    print(f"Adaptive grid correction value: {adaptcorr:.6f}")
+    print(f"Linear integration took  : {stopt - intermedt:.6f}")
+    print(f"Linear grid correction value  : {lincorr:.6f}")
 
 #------------------------------------------------------------------------------
 
@@ -377,4 +425,5 @@ if __name__ == "__main__":
 #    test_DetectorEfficiency_cancel()
 #    test_DetectorEfficiency_quad_vs_trapz()
 #    test_export_load()
-    test_update_params()
+#    test_update_params()
+    test_adaptive_vs_linear()
