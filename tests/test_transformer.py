@@ -7,7 +7,7 @@ from pprint import pprint
 from modelmiezelb.correction import CorrectionFactor, DetectorEfficiencyCorrectionFactor, EnergyCutOffCorrectionFactor
 from modelmiezelb.lineshape import LorentzianLine, F_ILine, F_cLine
 from modelmiezelb.sqe_model import SqE, SqE_from_arg
-from modelmiezelb.transformer import SqtTransformer
+from modelmiezelb.transformer import SqtTransformer, STANDARD_SQT
 ###############################################################################
 from modelmiezelb.utils.util import MIEZE_DeltaFreq_from_time, energy_from_lambda, MIEZE_phase, detector_efficiency, triangle_distribution
 ###############################################################################
@@ -163,18 +163,17 @@ def test_manualtransform_arg_model():
 def test_export_load():
     ### Creating a SqE model for transformation
     # We need some lines
-    L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
-    L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.0, weight=1)
-    L3 =   F_ILine("FI1", (-energy_from_lambda(6.0), 15), x0=-0.1, width=0.008, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
+    L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.00005, c=0.0, weight=0.1)
+    L2 =   F_ILine("FI1", (-energy_from_lambda(6.0), 15), x0=-0.01, width=0.008, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=0.9)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=628)
     # Add the detector efficiency correction
-    decf = DetectorEfficiencyCorrectionFactor(sqe, ne=10000, nlam=20)
+    decf = DetectorEfficiencyCorrectionFactor(sqe, ne=500, nlam=20)
     # Add the energycutoff correction
-    eccf = EnergyCutOffCorrectionFactor(sqe, ne=10000, nlam=20 )
+    eccf = EnergyCutOffCorrectionFactor(sqe, ne=500, nlam=20 )
 
     ### Instantiate a transformer
-    sqt = SqtTransformer(sqe, corrections=(decf, eccf), nlam=20, ne=10000, lSD=3.43)
+    sqt = SqtTransformer(sqe, corrections=(decf, eccf), nlam=20, ne=500, lSD=3.43, integ_mode="adaptive")
 
     ### Export
     sqt_dict = sqt.export_to_dict()
@@ -228,23 +227,14 @@ def test_update_params():
 #------------------------------------------------------------------------------
 
 def test_adaptive_vs_linear():
-    L1 = LorentzianLine("LL1", (-energy_from_lambda(6.0), 15), x0=0.048, width=0.04, c=0.0, weight=0.0)
-    L2 = F_cLine("F_c1", (-energy_from_lambda(6.0), 15), x0=0.0, width=0.0001, A=350.0, q=0.02, c=0.0, weight=1)
-    L3 = F_ILine("F_I1", (-energy_from_lambda(6.0), 15), x0=-0.02, width=0.01, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
-    # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
-    # Add the detector efficiency correction
-    decf = DetectorEfficiencyCorrectionFactor(sqe, ne=100, nlam=20)
-
     ### Instantiate a transformer
-    sqtadapt = SqtTransformer(sqe, corrections=(decf,), nlam=20, ne=200, lSD=3.43)
-    sqtlinear = SqtTransformer(sqe, corrections=(decf,), nlam=20, ne=577, lSD=3.43, integ_mode="linear")
+    sqtadapt = SqtTransformer.load_from_dict(**STANDARD_SQT.export_to_dict())
+    sqtlinear = SqtTransformer.load_from_dict(**STANDARD_SQT.export_to_dict())
+    sqtlinear.update_params(ne=50000, integ_mode="linear")
 
     ### Values for transformation
-    taus = logspace(-4, 1, 151)
+    taus = logspace(-4, 1, 81)
     freqs = MIEZE_DeltaFreq_from_time(taus*1.0e-9, 3.43, 6.0)
-
-#    return sqtadapt(freqs[0]), sqtlinear(freqs[0])
 
     ### perform transformation
     from time import time
@@ -273,6 +263,4 @@ if __name__ == "__main__":
 #    test_manualtransform_arg_model()
 #    test_export_load()
 #    test_update_params()
-#    (eead, llad), (eelin, lllin) = test_adaptive_vs_linear()
-#    e_adaptive, ll_adaptive, ee_linear, ll_linear = test_adaptive_vs_linear()
     test_adaptive_vs_linear()

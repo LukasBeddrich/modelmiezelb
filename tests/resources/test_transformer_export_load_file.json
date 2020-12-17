@@ -1,6 +1,6 @@
 {
     "params": {
-        "ne": 10000,
+        "ne": 500,
         "nlam": 20,
         "lSD": 3.43,
         "integ_mode": "adaptive"
@@ -8,7 +8,7 @@
     "corrections": [
         {
             "calc_params": {
-                "ne": 10000,
+                "ne": 500,
                 "nlam": 20
             },
             "specifier": "detector_eff",
@@ -17,7 +17,7 @@
                     "lam": 6.0,
                     "dlam": 0.12,
                     "lSD": 3.43,
-                    "T": 20
+                    "T": 628
                 },
                 "Lorentzian1": {
                     "name": "Lorentzian1",
@@ -26,21 +26,9 @@
                         5.0
                     ],
                     "x0": 0.0,
-                    "width": 0.4,
+                    "width": 5e-05,
                     "c": 0.0,
-                    "weight": 2,
-                    "specifier": "lorentzian"
-                },
-                "Lorentzian2": {
-                    "name": "Lorentzian2",
-                    "domain": [
-                        -5.0,
-                        5.0
-                    ],
-                    "x0": -1.0,
-                    "width": 0.4,
-                    "c": 0.0,
-                    "weight": 1,
+                    "weight": 0.1,
                     "specifier": "lorentzian"
                 },
                 "FI1": {
@@ -49,20 +37,20 @@
                         -2.272339235718374,
                         15
                     ],
-                    "x0": -0.1,
+                    "x0": -0.01,
                     "width": 0.008,
                     "A": 350.0,
                     "q": 0.02,
                     "kappa": 0.01,
                     "c": 0.0,
-                    "weight": 1,
+                    "weight": 0.9,
                     "specifier": "f_I"
                 }
             }
         },
         {
             "calc_params": {
-                "ne": 10000,
+                "ne": 500,
                 "nlam": 20
             },
             "specifier": "energy_cutoff",
@@ -71,7 +59,7 @@
                     "lam": 6.0,
                     "dlam": 0.12,
                     "lSD": 3.43,
-                    "T": 20
+                    "T": 628
                 },
                 "Lorentzian1": {
                     "name": "Lorentzian1",
@@ -80,21 +68,9 @@
                         5.0
                     ],
                     "x0": 0.0,
-                    "width": 0.4,
+                    "width": 5e-05,
                     "c": 0.0,
-                    "weight": 2,
-                    "specifier": "lorentzian"
-                },
-                "Lorentzian2": {
-                    "name": "Lorentzian2",
-                    "domain": [
-                        -5.0,
-                        5.0
-                    ],
-                    "x0": -1.0,
-                    "width": 0.4,
-                    "c": 0.0,
-                    "weight": 1,
+                    "weight": 0.1,
                     "specifier": "lorentzian"
                 },
                 "FI1": {
@@ -103,13 +79,13 @@
                         -2.272339235718374,
                         15
                     ],
-                    "x0": -0.1,
+                    "x0": -0.01,
                     "width": 0.008,
                     "A": 350.0,
                     "q": 0.02,
                     "kappa": 0.01,
                     "c": 0.0,
-                    "weight": 1,
+                    "weight": 0.9,
                     "specifier": "f_I"
                 }
             }
@@ -120,7 +96,7 @@
             "lam": 6.0,
             "dlam": 0.12,
             "lSD": 3.43,
-            "T": 20
+            "T": 628
         },
         "Lorentzian1": {
             "name": "Lorentzian1",
@@ -129,21 +105,9 @@
                 5.0
             ],
             "x0": 0.0,
-            "width": 0.4,
+            "width": 5e-05,
             "c": 0.0,
-            "weight": 2,
-            "specifier": "lorentzian"
-        },
-        "Lorentzian2": {
-            "name": "Lorentzian2",
-            "domain": [
-                -5.0,
-                5.0
-            ],
-            "x0": -1.0,
-            "width": 0.4,
-            "c": 0.0,
-            "weight": 1,
+            "weight": 0.1,
             "specifier": "lorentzian"
         },
         "FI1": {
@@ -152,13 +116,13 @@
                 -2.272339235718374,
                 15
             ],
-            "x0": -0.1,
+            "x0": -0.01,
             "width": 0.008,
             "A": 350.0,
             "q": 0.02,
             "kappa": 0.01,
             "c": 0.0,
-            "weight": 1,
+            "weight": 0.9,
             "specifier": "f_I"
         }
     }

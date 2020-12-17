@@ -211,7 +211,11 @@ class SqE:
             grouped_params[key] = dict((strip_param_name(k), v) for k, v in groups)
         self.model_params.update(grouped_params["model_params"])
         for line in self._lines:
-            line.update_line_params(**grouped_params[line.name])
+            try:
+                line.update_line_params(**grouped_params[line.name])
+            except KeyError:
+                pass
+                # print(f"No parameter update for {line.name}")
 
 #------------------------------------------------------------------------------
 

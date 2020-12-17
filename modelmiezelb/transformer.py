@@ -3,9 +3,12 @@
 """
 import json
 from numpy import tile, linspace, empty, cos, trapz, meshgrid, ones, pi, sqrt, where, atleast_2d
+from modelmiezelb import testdir
 from modelmiezelb.utils.util import energy_from_lambda, MIEZE_phase, triangle_distribution, detector_efficiency
 from modelmiezelb.sqe_model import UPPER_INTEGRATION_LIMIT, SqE
 from modelmiezelb.correction import CorrectionFactor
+
+
 class Transformer:
     """
 
@@ -229,3 +232,10 @@ class SqtTransformer(Transformer):
         self.sqemodel.update_params(**new_params)
         
 #------------------------------------------------------------------------------
+
+###############################################################################
+###############################################################################
+###############################################################################
+
+# A SqtTransformer object for everyday usage
+STANDARD_SQT = SqtTransformer.load_from_jsonfile(f"{testdir}/resources/test_transformer_export_load_file.json")
