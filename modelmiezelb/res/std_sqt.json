@@ -1,0 +1,129 @@
+{
+    "params": {
+        "ne": 500,
+        "nlam": 20,
+        "lSD": 3.43,
+        "integ_mode": "adaptive"
+    },
+    "corrections": [
+        {
+            "calc_params": {
+                "ne": 500,
+                "nlam": 20
+            },
+            "specifier": "detector_eff",
+            "sqe": {
+                "model_params": {
+                    "lam": 6.0,
+                    "dlam": 0.12,
+                    "lSD": 3.43,
+                    "T": 628
+                },
+                "Lorentzian1": {
+                    "name": "Lorentzian1",
+                    "domain": [
+                        -5.0,
+                        5.0
+                    ],
+                    "x0": 0.0,
+                    "width": 5e-05,
+                    "c": 0.0,
+                    "weight": 0.1,
+                    "specifier": "lorentzian"
+                },
+                "FI1": {
+                    "name": "FI1",
+                    "domain": [
+                        -2.272339235718374,
+                        15
+                    ],
+                    "x0": -0.01,
+                    "width": 0.008,
+                    "A": 350.0,
+                    "q": 0.02,
+                    "kappa": 0.01,
+                    "c": 0.0,
+                    "weight": 0.9,
+                    "specifier": "f_I"
+                }
+            }
+        },
+        {
+            "calc_params": {
+                "ne": 500,
+                "nlam": 20
+            },
+            "specifier": "energy_cutoff",
+            "sqe": {
+                "model_params": {
+                    "lam": 6.0,
+                    "dlam": 0.12,
+                    "lSD": 3.43,
+                    "T": 628
+                },
+                "Lorentzian1": {
+                    "name": "Lorentzian1",
+                    "domain": [
+                        -5.0,
+                        5.0
+                    ],
+                    "x0": 0.0,
+                    "width": 5e-05,
+                    "c": 0.0,
+                    "weight": 0.1,
+                    "specifier": "lorentzian"
+                },
+                "FI1": {
+                    "name": "FI1",
+                    "domain": [
+                        -2.272339235718374,
+                        15
+                    ],
+                    "x0": -0.01,
+                    "width": 0.008,
+                    "A": 350.0,
+                    "q": 0.02,
+                    "kappa": 0.01,
+                    "c": 0.0,
+                    "weight": 0.9,
+                    "specifier": "f_I"
+                }
+            }
+        }
+    ],
+    "sqemodel": {
+        "model_params": {
+            "lam": 6.0,
+            "dlam": 0.12,
+            "lSD": 3.43,
+            "T": 628
+        },
+        "Lorentzian1": {
+            "name": "Lorentzian1",
+            "domain": [
+                -5.0,
+                5.0
+            ],
+            "x0": 0.0,
+            "width": 5e-05,
+            "c": 0.0,
+            "weight": 0.1,
+            "specifier": "lorentzian"
+        },
+        "FI1": {
+            "name": "FI1",
+            "domain": [
+                -2.272339235718374,
+                15
+            ],
+            "x0": -0.01,
+            "width": 0.008,
+            "A": 350.0,
+            "q": 0.02,
+            "kappa": 0.01,
+            "c": 0.0,
+            "weight": 0.9,
+            "specifier": "f_I"
+        }
+    }
+}

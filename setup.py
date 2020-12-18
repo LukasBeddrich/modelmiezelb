@@ -18,5 +18,7 @@ setup(
         "scipy"
     ],
     python_requires=">=3.7.3",
+    package_data={"modelmiezelb" : ["res/*.json"]},
+    include_package_data=True,
     project_urls={"Source Code" : "https://github.com/LukasBeddrich/modelmiezelb"}
 )
