@@ -114,8 +114,8 @@ class SqtTransformer(Transformer):
                 self.params["ne"],
                 self.params["nlam"]
             )
-#            return ee
             ee = where(ee <= atleast_2d(a), atleast_2d(a), ee)
+#            return ee
 
         elif self.params["integ_mode"] == "linear":
 #            print("linear grid")

@@ -95,7 +95,7 @@ class SqE:
             2D array of energy integration points
         """
         # first grid is a coarse grid over entire domain
-        grids = []
+        grids = [[]]
         for line in self._lines:
             grids.append(self.apply_grid_strategy(line, ne))
         # unites all individual grids to one.
