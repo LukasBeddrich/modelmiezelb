@@ -10,7 +10,7 @@ from modelmiezelb.correction import CorrectionFactor, DetectorEfficiencyCorrecti
 from modelmiezelb.lineshape import LorentzianLine, F_cLine, F_ILine
 from modelmiezelb.sqe_model import SqE, UPPER_INTEGRATION_LIMIT
 ###############################################################################
-from modelmiezelb.utils.util import detector_efficiency, triangle_distribution, energy_from_lambda, energy_lambda_nrange
+from modelmiezelb.utils.util import detector_efficiency, triangle_distribution, energy_from_lambda, energy_lambda_nrange, cascade_efficiency
 ###############################################################################
 from pprint import pprint
 ###############################################################################
@@ -414,6 +414,14 @@ def test_adaptive_vs_linear():
     print(f"Linear grid correction value  : {lincorr:.6f}")
 
 #------------------------------------------------------------------------------
+def test_cascade_efficiency():
+    lam0 = 6.0
+    des = linspace(-0.9999*energy_from_lambda(lam0), 15)
+    cascade_eff_10 = cascade_efficiency(des, lam0)
+    cascade_eff_6 = cascade_efficiency(des, lam0, 6)
+
+
+
 
 
 if __name__ == "__main__":
@@ -426,4 +434,5 @@ if __name__ == "__main__":
 #    test_DetectorEfficiency_quad_vs_trapz()
 #    test_export_load()
 #    test_update_params()
-    test_adaptive_vs_linear()
+#    test_adaptive_vs_linear()
+    test_cascade_efficiency()

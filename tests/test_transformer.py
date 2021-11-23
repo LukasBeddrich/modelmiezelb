@@ -255,10 +255,10 @@ def test_adaptive_vs_linear():
 
 #------------------------------------------------------------------------------
 
-def test_in_development():
-    sqtadapt = SqtTransformer.load_from_dict(**STANDARD_SQT.export_to_dict())
-    sqtadapt.params.update(dict(ne=15, nlam=2))
-    print(sqtadapt(100001.0)[:,0])
+# def test_in_development():
+#     sqtadapt = SqtTransformer.load_from_dict(**STANDARD_SQT.export_to_dict())
+#     sqtadapt.params.update(dict(ne=15, nlam=2))
+#     print(sqtadapt(100001.0)[:,0])
 
 #------------------------------------------------------------------------------
 
@@ -268,6 +268,6 @@ if __name__ == "__main__":
 #    test_transform_arg_model()
 #    test_manualtransform_arg_model()
 #    test_export_load()
-#    test_update_params()
+    test_update_params()
 #    test_adaptive_vs_linear()
-    test_in_development()
+#    test_in_development()
