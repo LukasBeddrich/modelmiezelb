@@ -2,12 +2,13 @@
 
 """
 import json
+import os
 ###############################################################################
-from numpy import trapz, arange, ones
-from scipy.integrate import quad
+from numpy import trapz, arange, ones, load
+from scipy.interpolate import interp1d
+from . import resdir
 from .sqe_model import SqE, UPPER_INTEGRATION_LIMIT
-from .utils.util import detector_efficiency, triangle_distribution
-
+from .utils.util import detector_efficiency, triangle_distribution, from_energy_to_lambdaf
 ###############################################################################
 
 class CorrectionFactory:
@@ -151,6 +152,19 @@ class DetectorEfficiencyCorrectionFactor(CorrectionFactor):
 
     """
 
+    def __init__(self, sqe, nfoils=10, **calc_params):
+        """
+        Parameters
+        ----------
+        nfoils      :   int
+            defines how many foils are used in cascade detection efficiency calculation
+        """
+        super().__init__(sqe, **calc_params)
+        self.calc_params['nfoils'] = nfoils
+        self.build_efficiency_interpolation_function()
+
+#------------------------------------------------------------------------------
+
     def __call__(self, energy, lam):
         """
         Calculates product of MIEZE detector efficiency factor, wavelength distr.
@@ -162,7 +176,7 @@ class DetectorEfficiencyCorrectionFactor(CorrectionFactor):
             energy range with energy transfer depending limited by neutron wavelength
         lam     :   float, ndarray (same as energy)
             inital wavelength of the neutrons
-        
+
         Returns
         -------
                 :   float, ndarray (same as input)
@@ -187,8 +201,14 @@ class DetectorEfficiencyCorrectionFactor(CorrectionFactor):
         Returns
         -------
                 :   float, ndarray (same as input)
+
+        NOTE
+        ----
+        Why is this independent of lambda?
+        - maybe because sqe is always normalized and detector efficiency shifts with the cut-off
         """
-        det_eff = detector_efficiency(energy, lam, 1)
+        lamf = from_energy_to_lambdaf(energy, lam)
+        det_eff = self.efficiency_function(lamf)
         sqe = self.sqe(energy)
         tri_distr = triangle_distribution(
             lam,
@@ -196,6 +216,30 @@ class DetectorEfficiencyCorrectionFactor(CorrectionFactor):
             self.sqe.model_params["dlam"]
         )
         return trapz(trapz(sqe * tri_distr, energy, axis=0), lam[0]) / trapz(trapz(det_eff * sqe * tri_distr, energy, axis=0), lam[0])
+
+#------------------------------------------------------------------------------
+
+    def build_efficiency_interpolation_function(self):
+        """
+
+        """
+        # loads the detection efficiency curve for a specific foil number
+        resource_path = os.path.join(
+            resdir,
+            f"cascade_efficiency_{self.calc_params['nfoils']}_foils.npz"
+        )
+        efficiency_file = load(resource_path)
+        lams = efficiency_file['wavelength_in_angstroem']
+        efficiency = efficiency_file['cascade_efficiency']
+
+        # build an interpolation function for fast calculation of the
+        # detection efficiency
+        self.efficiency_function = interp1d(
+            lams,
+            efficiency,
+            kind="linear",
+            assume_sorted=True
+        )
 
 #------------------------------------------------------------------------------
 

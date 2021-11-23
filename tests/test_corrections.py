@@ -2,15 +2,16 @@ import matplotlib.pyplot as plt
 import modelmiezelb.arg_inel_mieze_model as arg
 import os
 ###############################################################################
-from numpy import linspace, tile, trapz, all, isclose, arange, ones, atleast_2d, where
+from numpy import linspace, tile, trapz, all, isclose, arange, ones, atleast_2d, where, load
 from pprint import pprint
 from time import time
+from scipy.interpolate import interp1d
 ###############################################################################
 from modelmiezelb.correction import CorrectionFactor, DetectorEfficiencyCorrectionFactor, EnergyCutOffCorrectionFactor
 from modelmiezelb.lineshape import LorentzianLine, F_cLine, F_ILine
 from modelmiezelb.sqe_model import SqE, UPPER_INTEGRATION_LIMIT
 ###############################################################################
-from modelmiezelb.utils.util import detector_efficiency, triangle_distribution, energy_from_lambda, energy_lambda_nrange, cascade_efficiency
+from modelmiezelb.utils.util import detector_efficiency, triangle_distribution, energy_from_lambda, energy_lambda_nrange, cascade_efficiency, from_energy_to_lambdaf
 ###############################################################################
 from pprint import pprint
 ###############################################################################
@@ -414,12 +415,69 @@ def test_adaptive_vs_linear():
     print(f"Linear grid correction value  : {lincorr:.6f}")
 
 #------------------------------------------------------------------------------
+
 def test_cascade_efficiency():
     lam0 = 6.0
     des = linspace(-0.9999*energy_from_lambda(lam0), 15)
     cascade_eff_10 = cascade_efficiency(des, lam0)
     cascade_eff_6 = cascade_efficiency(des, lam0, 6)
 
+#------------------------------------------------------------------------------
+
+def active_development():
+    # We need some lines
+    L1 = LorentzianLine(name="Lorentzian1", domain=(-5.0, 5.0), x0=-0.03, width=0.01, c=0.0, weight=5)
+    L2 = LorentzianLine("Lorentzian2", (-5.0, 5.0), x0=0.0, width=0.02, c=0.0, weight=1)
+    # Contruct a SqE model
+    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    # init energycutoff
+    decf = DetectorEfficiencyCorrectionFactor(sqe, ne=10000, nlam=20)
+
+    # # First, I need to look at sqe
+    # es = sqe.get_adaptive_integration_grid(100, 3)
+    # plt.plot(es[:,0], sqe(es[:,0]))
+    # plt.plot(es[:,1], sqe(es[:,1]) + 0.1)
+    # plt.plot(es[:,2], sqe(es[:,2]) + 0.2)
+    # plt.xlim((-4, 4))
+    # plt.show()
+
+    # Check output of the Detector efficiency call
+    ee, ll = energy_lambda_nrange(15, 6.0, 0.12, 10000, 20)
+    # print(decf.calc(ee, ll))
+
+    # # Test the compatibility of cascade_efficiency and 2D array approach
+    # print(ee)
+    # print("--------------------------------------------------------------------")
+    # print(ll)
+    # print("--------------------------------------------------------------------")
+    # print(from_energy_to_lambdaf(ee, ll))
+    # print("--------------------------------------------------------------------")
+    # print(cascade_efficiency(ee, ll, 10))
+
+    # # Test individual integration in correction regime
+    # det_eff = cascade_efficiency(ee, ll, case=10)
+    # sqevals = sqe(ee)
+    # tri_distr = triangle_distribution(
+    #     ll,
+    #     sqe.model_params["lam"],
+    #     sqe.model_params["dlam"]
+    # )
+    # basecontr = trapz(trapz(sqevals * tri_distr, ee, axis=0), ll[0])
+    # other = trapz(trapz(det_eff * sqevals * tri_distr, ee, axis=0), ll[0])
+    # print(basecontr)
+    # print("--------------------------------------------------------------------")
+    # print(other)
+
+    # Build a loading and interpolation scheme for detector efficiency
+    efficiency_file = load("/home/lbeddric/Documents/devpython/modelmiezelb/modelmiezelb/res/cascade_efficiency_10_foils.npz")
+    lams = efficiency_file['wavelength_in_angstroem']
+    efficiency = efficiency_file['cascade_efficiency']
+    efficiency_function = interp1d(lams, efficiency, assume_sorted=True)
+
+    wavelengths = from_energy_to_lambdaf(ee, ll)
+    plt.plot(ee[:,0], efficiency_function(wavelengths[:,0]), "k,")
+    plt.plot(ee[:,-1], efficiency_function(wavelengths[:,-1]), "g,")
+    plt.show()
 
 
 
@@ -435,4 +493,5 @@ if __name__ == "__main__":
 #    test_export_load()
 #    test_update_params()
 #    test_adaptive_vs_linear()
-    test_cascade_efficiency()
+#    test_cascade_efficiency()
+    active_development()

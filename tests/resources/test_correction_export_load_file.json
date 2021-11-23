@@ -1,7 +1,8 @@
 {
     "calc_params": {
         "ne": 10000,
-        "nlam": 20
+        "nlam": 20,
+        "nfoils": 10
     },
     "specifier": "detector_eff",
     "sqe": {
