@@ -9,7 +9,7 @@ from scipy.interpolate import interp1d
 ###############################################################################
 from modelmiezelb.correction import CorrectionFactor, DetectorEfficiencyCorrectionFactor, EnergyCutOffCorrectionFactor
 from modelmiezelb.lineshape import LorentzianLine, F_cLine, F_ILine
-from modelmiezelb.sqe_model import SqE, UPPER_INTEGRATION_LIMIT
+from modelmiezelb.sqe_model import SqE, SqE_kf, UPPER_INTEGRATION_LIMIT
 ###############################################################################
 from modelmiezelb.utils.util import detector_efficiency, triangle_distribution, energy_from_lambda, energy_lambda_nrange, cascade_efficiency, from_energy_to_lambdaf
 ###############################################################################
@@ -28,35 +28,39 @@ def test_CorrectionFactor_instantiation():
 def test_DetectorEfficiencyCorrectionFactor():
     # We need some lines
     L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
-    L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.02, weight=1)
+    L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.0, weight=1)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE_kf(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=300.0)
     # Instantiate a detector efficiency corr factor
     decf = DetectorEfficiencyCorrectionFactor(sqe)
 
-    ne = 10
+    # Building ee and ll arrays for caluclations
+    ne_init = 500
     nlam = 5
-    lam = 6.0 * linspace(1-0.12*1.01, 1+0.12*1.01, nlam)
-    lams = tile(lam, (ne, 1))
-    
-    a = -0.99999 * energy_from_lambda(lam)
-    b = 15.0 + a
-    es = linspace(a, b, ne)
+    l = linspace(1-0.12, 1+0.12, 5) * 6.0
+    a = -0.99999 * energy_from_lambda(l)
 
-    deteff = detector_efficiency(es, lams, 1)
-    tria = triangle_distribution(lams, 6.0, 0.12)
+    ee = sqe.get_adaptive_integration_grid(ne_init, nlam)
 
-    print("Triangular wavelenght distr.: ", tria)
-    print("Triangular wavelength distr. shape: ", tria.shape)
-    print("Det. eff. values: ", deteff)
-    print("Det. eff. values shape: :", deteff.shape)
+    ee = where(ee <= atleast_2d(a), atleast_2d(a), ee)
 
-    sqevals = sqe(es)
+    ne = ee.shape[0]
 
-    print("Manual mult.: ", sqevals * deteff * tria)
-    print("Class result: ", decf(es, lams))
+    ll = tile(l, (ne, 1))
 
-    print("Are manual and deteffcorrfac identical?: ", all((sqevals * deteff * tria) == decf(es, lams)))
+    lamf = from_energy_to_lambdaf(ee, ll)
+
+    sqevals = sqe(ee, ll)
+    corrvals = decf.efficiency_function(lamf)
+    print("Energy array: ", ee[::150], "\n")
+    print("Wavel. array: ", ll[::150], "\n")
+    print("Det. Eff. array: ", corrvals[::150], "\n")
+    print("Class result: ", decf(ee, ll))
+
+    # for eeline, corrvalsline, sqevalsline in zip(ee.T, corrvals.T, sqevals.T):
+    #     plt.plot(eeline, corrvalsline * sqevalsline, marker=".")
+    # plt.xlim((-3, 5.5))
+    # plt.show()
 
 #------------------------------------------------------------------------------
 
@@ -64,7 +68,7 @@ def test_DetectorEfficiencyCorrectionFactor_compare_with_arg():
     # We need some lines
     L1 = LorentzianLine(name="Lorentzian1", domain=(-16.0, 16.0), x0=-1.0, width=0.4, c=0.0, weight=1)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1,), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE_kf(lines=(L1,), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     # Instantiate a detector efficiency corr factor
     decf = DetectorEfficiencyCorrectionFactor(sqe)
 
@@ -72,7 +76,7 @@ def test_DetectorEfficiencyCorrectionFactor_compare_with_arg():
     nlam = 20
     lam = 6.0 * linspace(1-0.12*1.01, 1+0.12*1.01, nlam)
     lams = tile(lam, (ne, 1))
-    
+
     a = -0.99999 * energy_from_lambda(lam)
     b = 15.0 + a
     es = linspace(a, b, ne)
@@ -105,7 +109,7 @@ def test_EnergyCutOffCorrectionFactor_vs_arg():
     # We need some lines
     L1 = LorentzianLine(name="Lorentzian1", domain=(-16.0, 16.0), x0=-1.0, width=0.4, c=0.0, weight=1)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1,), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE_kf(lines=(L1,), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     # Instantiate a energy cutoff corr factor
     eccf = EnergyCutOffCorrectionFactor(sqe)
 
@@ -113,7 +117,7 @@ def test_EnergyCutOffCorrectionFactor_vs_arg():
     nlam = 20
     lam = 6.0 * linspace(1-0.12*1.01, 1+0.12*1.01, nlam)
     lams = tile(lam, (ne, 1))
-    
+
     a = -0.99999 * energy_from_lambda(lam)
     b = 15.0 + a
     es = linspace(a, b, ne)
@@ -140,7 +144,7 @@ def test_EnergyCutOffCorrectionFactor_vs_arg():
 #    print(test_eccf_vals.shape)
     print(test_eccf_vals)
 
-#    print(eccf_vals.shape)  
+#    print(eccf_vals.shape)
     print(eccf_vals)
 #    print(isclose(eccf_vals, test_eccf_vals, atol=0.01))
     # argsqe = arg.SvqE(arg.lorentzian,
@@ -165,7 +169,7 @@ def test_correctionFactor_dimensionality():
     # We need some lines
     L1 = LorentzianLine(name="Lorentzian1", domain=(-16.0, 16.0), x0=-1.0, width=0.4, c=0.0, weight=1)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1,), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE_kf(lines=(L1,), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     # Instantiate a detector efficiency corr factor
     decf = DetectorEfficiencyCorrectionFactor(sqe)
     # Instantiate a energy cutoff corr factor
@@ -175,7 +179,7 @@ def test_correctionFactor_dimensionality():
     nlam = 5
     lam = 6.0 * linspace(1-0.12*1.01, 1+0.12*1.01, nlam)
     lams = tile(lam, (ne, 1))
-    
+
     a = -0.99999 * energy_from_lambda(lam)
     b = 15.0 + a
     es = linspace(a, b, ne)
@@ -192,7 +196,7 @@ def test_EnergyCutoffCorrectionFactor():
     L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
     L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.02, weight=1)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE_kf(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     new_domain = (-1 * energy_from_lambda(6.0), UPPER_INTEGRATION_LIMIT)
     sqe.update_domain(new_domain)
     # init energycutoff
@@ -202,7 +206,7 @@ def test_EnergyCutoffCorrectionFactor():
     nlam = 5
     lam = 6.0 * linspace(1-0.12*1.01, 1+0.12*1.01, nlam)
     lams = tile(lam, (ne, 1))
-    
+
     a = -0.99999 * energy_from_lambda(lam)
     b = 15.0 + a
     es = linspace(a, b, ne)
@@ -239,13 +243,13 @@ def test_EnergyCutoffCorrectionFactor():
 #    plt.show()
 
 #------------------------------------------------------------------------------
-    
+
 def test_DetectorEfficiency_cancel():
     # We need some lines
     L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
     L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.02, weight=1)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE_kf(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     new_domain = (-1 * energy_from_lambda(6.0), UPPER_INTEGRATION_LIMIT)
     sqe.update_domain(new_domain)
     # init energycutoff
@@ -264,62 +268,62 @@ def test_DetectorEfficiency_cancel():
 
 #------------------------------------------------------------------------------
 
-def test_DetectorEfficiency_quad_vs_trapz():
-    # We need some lines
-    L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
-    L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.02, weight=1)
-    # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+# def test_DetectorEfficiency_quad_vs_trapz():
+#     # We need some lines
+#     L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
+#     L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.02, weight=1)
+#     # Contruct a SqE model
+#     sqe = SqE_kf(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
 
-    ### QUAD
-    from scipy.integrate import dblquad
-    # parameter for calculation
-    plam, pdlam = 6.0, 0.12
+#     ### QUAD
+#     from scipy.integrate import dblquad
+#     # parameter for calculation
+#     plam, pdlam = 6.0, 0.12
 
-    def dblquadfunc(energy, lam, on):
-        # det_eff = detector_efficiency(energy, lam, 1)
-        # sqeval = sqe(energy)
-        # tri_distr_weight = triangle_distribution(lam, plam, pdlam)
-        return detector_efficiency(energy, lam, on) * sqe(energy) * triangle_distribution(lam, plam, pdlam)
-    # integrate
-    t0quad = time()
-    reson, erron = dblquad(
-        dblquadfunc,
-        plam * (1-pdlam),
-        plam * (1+pdlam),
-        lambda x: -0.9999 * energy_from_lambda(x),
-        lambda x: UPPER_INTEGRATION_LIMIT,
-        args=(1,),
-        #epsabs=1.0e-2
-    )
-    resoff, erroff = dblquad(
-        dblquadfunc,
-        plam * (1-pdlam),
-        plam * (1+pdlam),
-        lambda x: -0.9999 * energy_from_lambda(x),
-        lambda x: UPPER_INTEGRATION_LIMIT,
-        args=(0,),
-        #epsabs=1.0e-2
-    )
-    t1quad = time()
-    print(f"RESULT: {resoff/reson} +- {resoff/reson * ((erron/reson)**2+(erroff/resoff)**2)**0.5}")
-    print(f"dblquad took {t1quad - t0quad} seconds")
+#     def dblquadfunc(energy, lam, on):
+#         # det_eff = detector_efficiency(energy, lam, 1)
+#         # sqeval = sqe(energy)
+#         # tri_distr_weight = triangle_distribution(lam, plam, pdlam)
+#         return detector_efficiency(energy, lam, on) * sqe(energy) * triangle_distribution(lam, plam, pdlam)
+#     # integrate
+#     t0quad = time()
+#     reson, erron = dblquad(
+#         dblquadfunc,
+#         plam * (1-pdlam),
+#         plam * (1+pdlam),
+#         lambda x: -0.9999 * energy_from_lambda(x),
+#         lambda x: UPPER_INTEGRATION_LIMIT,
+#         args=(1,),
+#         #epsabs=1.0e-2
+#     )
+#     resoff, erroff = dblquad(
+#         dblquadfunc,
+#         plam * (1-pdlam),
+#         plam * (1+pdlam),
+#         lambda x: -0.9999 * energy_from_lambda(x),
+#         lambda x: UPPER_INTEGRATION_LIMIT,
+#         args=(0,),
+#         #epsabs=1.0e-2
+#     )
+#     t1quad = time()
+#     print(f"RESULT: {resoff/reson} +- {resoff/reson * ((erron/reson)**2+(erroff/resoff)**2)**0.5}")
+#     print(f"dblquad took {t1quad - t0quad} seconds")
 
-    ### TRAPZ
-    decf = DetectorEfficiencyCorrectionFactor(sqe)
-    ee, ll = energy_lambda_nrange(
-        UPPER_INTEGRATION_LIMIT,
-        6.0,
-        0.12,
-        15000,
-        20
-    )
-    # integrate
-    t0trapz = time()
-    trapz_res = decf(ee, ll)
-    t1trapz = time()
-    print(f"RESULT: {trapz_res}")
-    print(f"trapz took {t1trapz - t0trapz} seconds")
+#     ### TRAPZ
+#     decf = DetectorEfficiencyCorrectionFactor(sqe)
+#     ee, ll = energy_lambda_nrange(
+#         UPPER_INTEGRATION_LIMIT,
+#         6.0,
+#         0.12,
+#         15000,
+#         20
+#     )
+#     # integrate
+#     t0trapz = time()
+#     trapz_res = decf(ee, ll)
+#     t1trapz = time()
+#     print(f"RESULT: {trapz_res}")
+#     print(f"trapz took {t1trapz - t0trapz} seconds")
 
 #------------------------------------------------------------------------------
 
@@ -328,7 +332,7 @@ def test_export_load():
     L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
     L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.02, weight=1)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE_kf(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     new_domain = (-1 * energy_from_lambda(6.0), UPPER_INTEGRATION_LIMIT)
     sqe.update_domain(new_domain)
     # init energycutoff
@@ -352,7 +356,7 @@ def test_update_params():
     L1 = LorentzianLine("Lorentzian1", (-5.0, 5.0), x0=0.0, width=0.4, c=0.0, weight=2)
     L2 = LorentzianLine(name="Lorentzian2", domain=(-5.0, 5.0), x0=-1.0, width=0.4, c=0.02, weight=1)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE_kf(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     # init energycutoff
     decf = DetectorEfficiencyCorrectionFactor(sqe, ne=10000, nlam=20)
     pprint(decf.export_to_dict())
@@ -369,12 +373,12 @@ def test_update_params():
 #------------------------------------------------------------------------------
 
 def test_adaptive_vs_linear():
-    # 
+    #
     L1 = LorentzianLine("LL1", (-energy_from_lambda(6.0), 15), x0=0.048, width=0.04, c=0.0, weight=0.0)
     L2 = F_cLine("F_c1", (-energy_from_lambda(6.0), 15), x0=0.0, width=0.0001, A=350.0, q=0.02, c=0.0, weight=1)
     L3 = F_ILine("F_I1", (-energy_from_lambda(6.0), 15), x0=-0.02, width=0.01, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE_kf(lines=(L1, L2, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     # Add the detector efficiency correction
     decf = DetectorEfficiencyCorrectionFactor(sqe, ne=100, nlam=20)
 
@@ -429,7 +433,7 @@ def active_development():
     L1 = LorentzianLine(name="Lorentzian1", domain=(-5.0, 5.0), x0=-0.03, width=0.01, c=0.0, weight=5)
     L2 = LorentzianLine("Lorentzian2", (-5.0, 5.0), x0=0.0, width=0.02, c=0.0, weight=1)
     # Contruct a SqE model
-    sqe = SqE(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe = SqE_kf(lines=(L1, L2), lam=6.0, dlam=0.12, lSD=3.43, T=20)
     # init energycutoff
     decf = DetectorEfficiencyCorrectionFactor(sqe, ne=10000, nlam=20)
 
@@ -484,7 +488,7 @@ def active_development():
 
 if __name__ == "__main__":
 #    test_CorrectionFactor_instantiation()
-#    test_DetectorEfficiencyCorrectionFactor()
+    test_DetectorEfficiencyCorrectionFactor()
 #    test_EnergyCutOffCorrectionFactor()
 #    test_correctionFactor_dimensionality()
 #    test_EnergyCutoffCorrectionFactor()
@@ -494,4 +498,4 @@ if __name__ == "__main__":
 #    test_update_params()
 #    test_adaptive_vs_linear()
 #    test_cascade_efficiency()
-    active_development()
+#    active_development()

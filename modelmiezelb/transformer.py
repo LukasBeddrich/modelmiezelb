@@ -4,9 +4,9 @@
 import json
 from numpy import tile, linspace, empty, cos, trapz, meshgrid, ones, pi, sqrt, where, atleast_2d
 from modelmiezelb import resdir
-from modelmiezelb.utils.util import energy_from_lambda, MIEZE_phase, triangle_distribution, detector_efficiency
+from modelmiezelb.utils.util import energy_from_lambda, MIEZE_phase, from_energy_to_lambdaf, triangle_distribution, detector_efficiency
 from modelmiezelb.sqe_model import UPPER_INTEGRATION_LIMIT, SqE
-from modelmiezelb.correction import CorrectionFactor
+from modelmiezelb.correction import CorrectionFactor, DetectorEfficiencyCorrectionFactor
 
 
 class Transformer:
@@ -128,6 +128,7 @@ class SqtTransformer(Transformer):
 
         ### Creating intgrand arrays
         sqe = ones((ne, self.params["nlam"]))
+        sqe = self.sqemodel(ee, ll)
         corrs = tile(sqe, (len(self.corrections), 1, 1))
 
         ### Filling integrand arrays
@@ -136,11 +137,10 @@ class SqtTransformer(Transformer):
         tri_distr = triangle_distribution(ll, lam, dlam)
         for cidx, cf in enumerate(self.corrections):
             corrs[cidx] = cf(ee, ll)
+            if isinstance(cf, DetectorEfficiencyCorrectionFactor):
+                lamf = from_energy_to_lambdaf(ee, ll)
+                det_eff = cf.efficiency_function(lamf)
         corrs = corrs.prod(axis=0)
-
-        for lamidx, clam in enumerate(l): # clam = current wavelength
-            self.sqemodel.update_domain((-1 * energy_from_lambda(clam), UPPER_INTEGRATION_LIMIT))
-            sqe[:, lamidx] = self.sqemodel(ee[:, lamidx])
 
         ### Integration with trapezoidal rule
         # integrand except phase

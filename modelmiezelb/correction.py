@@ -209,7 +209,7 @@ class DetectorEfficiencyCorrectionFactor(CorrectionFactor):
         """
         lamf = from_energy_to_lambdaf(energy, lam)
         det_eff = self.efficiency_function(lamf)
-        sqe = self.sqe(energy)
+        sqe = self.sqe(energy, lam)
         tri_distr = triangle_distribution(
             lam,
             self.sqe.model_params["lam"],

@@ -7,8 +7,8 @@ from scipy.integrate import quad
 
 from modelmiezelb.utils.lineshape_functions import gaussian, lorentzian, fqe_I
 from modelmiezelb.lineshape import Line, LorentzianLine, LineFactory, InelasticCalcStrategy, QuasielasticCalcStrategy
-from modelmiezelb.sqe_model import SqE
-from modelmiezelb.utils.util import energy_from_lambda
+from modelmiezelb.sqe_model import SqE, SqE_kf
+from modelmiezelb.utils.util import energy_from_lambda, wavelength_from_energy
 
 #------------------------------------------------------------------------------
 ### A range in energy space for the evaluation
@@ -38,7 +38,7 @@ ax1.legend()
 icalcstrat = InelasticCalcStrategy(T=20.)
 qcalcstrat = QuasielasticCalcStrategy()
 # This creates the sqe model
-sqe1 = SqE(lines=(L1, L2, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+sqe1 = SqE_kf(lines=(L1, L2, L3), lam=wavelength_from_energy(6.0), dlam=0.12, lSD=3.43, T=20)
 
 # Sum of the Lines (l1, L2, L3) weights
 sum_of_weights = sum([l.line_params["weight"] for l in (L1, L2, L3)])

@@ -1,12 +1,17 @@
 """
-
+NOTE
+----
+Now there are two types of S(q,E) models: SqE and SqE_kf.
+Maybe the implementation of a Factory class might be necessary for correct usage of fit
+functionality.
 """
 
 import json
 import modelmiezelb.arg_inel_mieze_model as arg
 from math import isclose
-from numpy import union1d, linspace, tile
-from .utils.util import energy_from_lambda, bose_factor, wavelength_from_energy
+from numpy import union1d, linspace, tile, trapz, pi, ndarray, where
+from scipy.integrate import quad
+from .utils.util import energy_from_lambda, bose_factor, wavelength_from_energy, from_energy_to_lambdaf
 from .utils.helpers import get_key_for_grouping
 from .lineshape import InelasticCalcStrategy, QuasielasticCalcStrategy, LineFactory
 from itertools import groupby
@@ -47,11 +52,11 @@ class SqE:
 
 #------------------------------------------------------------------------------
     
-    def __call__(self, var):
+    def __call__(self, var, lam=None):
         """
 
         """
-        return self.calc(var)
+        return self.calc(var, lam)
 
 #------------------------------------------------------------------------------
 
@@ -219,7 +224,7 @@ class SqE:
 
 #------------------------------------------------------------------------------
 
-    def calc(self, var):
+    def calc(self, var, lam=None):
         """
 
         """
@@ -321,6 +326,111 @@ class SqE:
 
     #     """
     #     pass
+
+###############################################################################
+###############################################################################
+###############################################################################
+
+class SqE_kf(SqE):
+    """
+
+    NOTE
+    ----
+    - Add the kf/ki factor for the double differential cross section (ddcs)
+    - Introduce it on sqe level --> lam0 needs to be known
+                                --> only multiply once
+                                --> requires numerical intergration for normalization
+    """
+
+
+    def __call__(self, de, lam=None):
+        """
+        Calculates the normalized SqE
+        
+        Parameters
+        ----------
+        de      :   float, ndarray
+            the energy transfer
+        lam     :   float, ndarray, NoneType
+            wavelength of the incoming neutrons
+        """
+        return self.calc(de, lam)
+
+#------------------------------------------------------------------------------
+
+    def calc(self, de, lam=None):
+        """
+        Calculates the normalized SqE
+        
+        Parameters
+        ----------
+        de      :   float, ndarray
+            the energy transfer
+        lam     :   float, ndarray, NoneType
+            wavelength of the incoming neutrons
+        """
+
+        return self._calc(de, lam) / self._integrate(lam)
+
+#------------------------------------------------------------------------------
+
+    def _calc(self, de, lam):
+        """
+        Calculates the non-normalized SqE
+
+        Parameters
+        ----------
+        de      :   float, ndarray
+            the energy transfer
+        lam     :   float, ndarray, NoneType
+            wavelength of the incoming neutrons
+        """
+
+        retval = 0.0
+        sum_of_weights = 0.0
+        # make sure, incoming neutron wavelength corresponds to the maximum energy loss
+        if lam is None:
+            kf = 2 * pi / from_energy_to_lambdaf(de, self.model_params["lam"])
+        else:
+            kf = 2 * pi / from_energy_to_lambdaf(de, lam)
+        # Iterate over all lines and add up their contribution
+        for line in self._lines:
+            retval += self.apply_calc_strategy(line, de)
+            # Add respective weight of the line to normalize sqe afterwards
+            sum_of_weights += line.line_params["weight"]
+        # multiply with the kf weighting factor
+        retval *= kf
+        return retval / sum_of_weights
+
+#------------------------------------------------------------------------------
+
+    def _integrate(self, lam=None):
+        """
+        NOTE
+        ----
+        The arbitrary chosen integration boundaries are a huge problem!
+        Needs to be fixed with a general solution SOON!
+
+        Parameters
+        ----------
+        de      :   float, ndarray
+            the energy transfer
+        lam     :   float, ndarray, NoneType
+            wavelength of the incoming neutrons
+        """
+        # generate new energy array if nothing is specified
+        # ee = self.get_adaptive_integration_grid(2000, 1)
+
+        if lam is None:
+            ee = self.get_adaptive_integration_grid(2000, 1)
+            ee = ee[ee>-0.99999*energy_from_lambda(self.model_params["lam"])]
+            ll = lam
+        else:
+            ee = self.get_adaptive_integration_grid(2000, lam.shape[1])
+            ll = tile(lam[0], (ee.shape[0], 1))
+            a = -0.99999*energy_from_lambda(ll)
+            ee = where(ee <= a, a, ee)
+        return trapz(self._calc(ee, ll), ee, axis=0)
 
 ###############################################################################
 ###############################################################################

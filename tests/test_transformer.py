@@ -1,15 +1,15 @@
 import matplotlib.pyplot as plt
 import os
 ###############################################################################
-from numpy import linspace, logspace, tile, trapz, all, isclose, abs, array
+from numpy import linspace, pi, cos, logspace, tile, trapz, all, isclose, abs, array, where, atleast_2d
 from pprint import pprint
 ###############################################################################
 from modelmiezelb.correction import CorrectionFactor, DetectorEfficiencyCorrectionFactor, EnergyCutOffCorrectionFactor
 from modelmiezelb.lineshape import LorentzianLine, F_ILine, F_cLine
-from modelmiezelb.sqe_model import SqE, SqE_from_arg
+from modelmiezelb.sqe_model import SqE, SqE_kf, SqE_from_arg
 from modelmiezelb.transformer import SqtTransformer, STANDARD_SQT
 ###############################################################################
-from modelmiezelb.utils.util import MIEZE_DeltaFreq_from_time, energy_from_lambda, MIEZE_phase, detector_efficiency, triangle_distribution
+from modelmiezelb.utils.util import from_energy_to_lambdaf, MIEZE_DeltaFreq_from_time, energy_from_lambda, MIEZE_phase, detector_efficiency, triangle_distribution
 ###############################################################################
 import modelmiezelb.arg_inel_mieze_model as arg
 ###############################################################################
@@ -37,7 +37,7 @@ def test_transformer_basics():
     L1 = LorentzianLine(name="Lorentzian1", domain=(-15.0, 15.0), x0=-1.0, width=0.4, c=0.0, weight=3)
     L3 =   F_ILine("FI1", (-energy_from_lambda(6.0), 15), x0=-0.1, width=0.008, A=350.0, q=0.02, kappa=0.01, c=0.0, weight=1)
     # Contruct a SqE model
-    sqe1 = SqE(lines=(L1, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
+    sqe1 = SqE_kf(lines=(L1, L3), lam=6.0, dlam=0.12, lSD=3.43, T=20)
 
     ### Instantiate a transformer
     sqt1 = SqtTransformer(
@@ -255,10 +255,97 @@ def test_adaptive_vs_linear():
 
 #------------------------------------------------------------------------------
 
-# def test_in_development():
-#     sqtadapt = SqtTransformer.load_from_dict(**STANDARD_SQT.export_to_dict())
-#     sqtadapt.params.update(dict(ne=15, nlam=2))
-#     print(sqtadapt(100001.0)[:,0])
+def active_development():
+    # A MIEZE time value
+    taus = logspace(-3.5, 0, 51) * 1.0e-9
+    freqs = MIEZE_DeltaFreq_from_time(taus, 3.43, 6.0)
+
+    # Building two sqt-models from SqE and SqE_kf
+    sqtadapt = SqtTransformer.load_from_dict(**STANDARD_SQT.export_to_dict())
+    sqtadapt.sqemodel.update_domain((-energy_from_lambda(6.0), 15))
+
+    sqekf = SqE_kf.load_from_dict(**sqtadapt.sqemodel.export_to_dict())
+    detcorr = DetectorEfficiencyCorrectionFactor(sqekf)
+    sqt_from_SqEkf = SqtTransformer(sqekf, corrections=(detcorr,), **sqtadapt.params)
+
+    L1 = LorentzianLine(
+        "Ni-sw-L1",
+        domain=(-energy_from_lambda(6.0), 15),
+        x0=0.011,
+        width=0.008,
+        c=0.0,
+        weight=1.0
+    )
+    sqekfNi = SqE_kf((L1,), lSD=3.43, lam=6.0, dlam=0.12, T=628.0)
+    detcorrNi = DetectorEfficiencyCorrectionFactor(sqekfNi)
+    sqtNi = SqtTransformer(sqekfNi, corrections=(detcorrNi,), **sqtadapt.params)
+    sqtNi.update_params(ne=1200, nlam=20)
+
+    # # Some plotting for visualization sqe and sqekf are different
+    # es = ee[:,:2] #linspace(-0.05, 0.05, 1001)
+    # sqekfvals = sqt_from_SqEkf.sqemodel(es, ll[:,:2])
+    # sqevals = sqtadapt.sqemodel(es[:,0])
+
+    # plt.plot(es[:,0], sqekfvals[:,0])
+    # plt.plot(es[:,1], sqekfvals[:,1])
+    # plt.plot(es[:,0], sqevals)
+    # plt.ylim((-1.0e-5, 6.0e-5))
+    # plt.xlim((-4, 10))
+    # plt.show()
+
+
+    # Building ee and ll arrays for caluclations
+    l = linspace(1-0.12, 1+0.12, 20) * 6.0
+    a = -0.99999 * energy_from_lambda(l)
+
+    ee = sqtadapt.sqemodel.get_adaptive_integration_grid(500, 20)
+
+    ee = where(ee <= atleast_2d(a), atleast_2d(a), ee)
+
+    ne = ee.shape[0]
+
+    ll = tile(l, (ne, 1))
+
+    print("Energy array:\n", ee[::500, ::5], "\n")
+    print("Energy array shape:\n", ee.shape, "\n")
+    print("Wavel. array:\n", ll[::500, ::5], "\n")
+    print("Fin. wavel. array:\n", from_energy_to_lambdaf(ee[::500, ::5], ll[::500,::5]), "\n")
+
+    # Building integrand arrays
+    sqtvals = []
+    sqtvals_fromTransformer = []
+    for freq in freqs:
+        # S(q,E) * kf
+        sqevals = sqekfNi(ee, ll)
+        # print("S(q,E) array:\n", sqevals[::500, ::5], "\n")
+        # Wavelength distribution
+        tri_distr = triangle_distribution(ll, 6.0, 0.12)
+        # print("Wavel. distr. array:\n", tri_distr[::500, ::5], "\n")
+        # MIEZE phase
+        mieze_phase = MIEZE_phase(ee, freq, 3.43, ll)
+        # print("MIEZE_phase array:\n", mieze_phase[::500, ::5], "\n")
+        # detector efficiency arrays
+        lamf = from_energy_to_lambdaf(ee, ll)
+        det_eff = detcorrNi.efficiency_function(lamf)
+        # corrs = tile(sqevals, (len((det_eff,)), 1, 1))
+        # print("Shape of the corrections array: ", corrs.shape, "\n")
+        # print("Det. Eff. array:\n", det_eff[::500, ::5], "\n")
+        # Normalization for detector efficiency correction
+        det_eff_norm_fac = detcorrNi.calc(ee, ll)
+        # print("Det. Eff. norm. fac:\n", det_eff_norm_fac, "\n")
+
+        # integrands
+        integrand = det_eff * sqevals * tri_distr * det_eff_norm_fac
+        y1 = trapz(trapz(integrand * cos(mieze_phase), ee, axis=0), l)
+        y2 = trapz(trapz(integrand * cos(mieze_phase + 0.5*pi), ee, axis=0), l)
+        sqtval = (y1**2 + y2**2)**0.5
+        sqtvals.append(sqtval)
+        sqtvals_fromTransformer.append(sqtNi(freq))
+        # break
+    plt.plot(taus, sqtvals, ls="-", marker="o", ms=4.0)
+    plt.plot(taus, sqtvals_fromTransformer, ls="-", marker="s", ms=4.0)
+    plt.xscale("log")
+    plt.show()
 
 #------------------------------------------------------------------------------
 
@@ -268,6 +355,6 @@ if __name__ == "__main__":
 #    test_transform_arg_model()
 #    test_manualtransform_arg_model()
 #    test_export_load()
-    test_update_params()
+#    test_update_params()
 #    test_adaptive_vs_linear()
-#    test_in_development()
+    active_development()
